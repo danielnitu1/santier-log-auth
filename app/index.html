@@ -116,6 +116,27 @@
 
   .obiect { display: grid; gap: 12px; }
 
+  /* Vederea unui document, deschisă din codul QR. */
+  .app.doc-vedere { grid-template-columns: 1fr; }
+  .app.doc-vedere aside { display: none; }
+  .app.doc-vedere .continut { max-width: 640px; gap: 14px; }
+  .inapoi { margin: 0; }
+  .inapoi a { color: var(--muted); text-decoration: none; display: inline-block; padding: 8px 0; }
+  .doc-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .doc-card h1 { font-size: clamp(20px, 5vw, 26px); margin: 2px 0 8px; text-wrap: balance; }
+  .doc-card h2 { font-size: 15px; margin: 0 0 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .doc-card h3 { font-size: 13px; color: var(--muted); margin: 14px 0 4px; font-weight: 600; }
+  .doc-card p { margin: 0 0 6px; }
+  .doc-card ul { margin: 0; padding-left: 1.2em; }
+  .doc-tip { color: var(--accent); font-size: 13px; font-weight: 600; }
+  .doc-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+  .fise { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px 16px; margin: 0; }
+  .fise dt { color: var(--muted); font-size: 12px; }
+  .fise dd { margin: 0; }
+  .pasi { margin: 0 0 12px; padding-left: 1.3em; display: grid; gap: 4px; }
+  .incarca { width: 100%; min-height: 48px; border-radius: 10px; border: 1px dashed var(--line); background: var(--bg); color: var(--muted); font-weight: 600; }
+  .doc-card .descarca { min-height: 44px; padding: 8px 18px; font-size: 15px; }
+
   /* Grupuri „în lucru”, strânse implicit. */
   .grupuri-wip { display: grid; gap: 8px; }
   details.grup-wip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
@@ -312,6 +333,8 @@
     if (error) { $('pagina').innerHTML = `<p class="eroare">${esc(error.message)}</p>`; return }
     lucrari = lc ?? []
     deseneazaLucrari()
+    const codDocument = new URLSearchParams(location.search).get('d')
+    if (codDocument) return deseneazaDocument(codDocument)
     const dinAdresa = location.hash.slice(1)
     alege(lucrari.find((l) => l.id === dinAdresa)?.id ?? lucrari[0]?.id)
   }
@@ -456,6 +479,103 @@
       <section class="grup"><h2>Dosarul complet</h2><div class="lista">
         ${rand({ cod: 'CTC', nume: 'Cartea Tehnică completă', desc: 'toate documentele, în ordinea din borderou, într-un singur fișier' })}
       </div></section>`
+  }
+
+  // ---------- Vederea unui document (de la codul QR) ----------
+  // Codul: „j.” (zi de jurnal) sau „p.” (proces verbal) + UUID-ul în base64url (vezi functions/mcp/tools/qr.ts).
+  function decodeaza(cod) {
+    const m = String(cod).match(/^([jp])\.([A-Za-z0-9_-]{22})$/)
+    if (!m) return null
+    const bin = atob(m[2].replace(/-/g, '+').replace(/_/g, '/') + '==')
+    const hex = [...bin].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+    return { fel: m[1], id: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}` }
+  }
+
+  const lista = (xs, f) => (xs ?? []).length ? `<ul>${xs.map((x) => `<li>${f(x)}</li>`).join('')}</ul>` : '<p class="gol">—</p>'
+
+  function rezumatJurnal(z) {
+    const n = (x) => Number(x) || 0
+    const muncitori = (z.muncitori ?? []).reduce((s, m) => s + n(m.calificati) + n(m.necalificati), 0)
+    return `
+      <dl class="fise">
+        <div><dt>Vremea</dt><dd>${esc(z.vremea || '—')}${z.temperatura ? `, ${esc(String(z.temperatura).replace(/\s*°?C$/i, ''))} °C` : ''}</dd></div>
+        <div><dt>Program</dt><dd>${z.ora_start ? `${z.ora_start.slice(0, 5)}–${(z.ora_final || '').slice(0, 5)}` : '—'}</dd></div>
+        <div><dt>Muncitori</dt><dd>${muncitori}</dd></div>
+        <div><dt>Utilaje</dt><dd>${(z.utilaje ?? []).reduce((s, u) => s + n(u.numar), 0)}</dd></div>
+      </dl>
+      <h3>Activități</h3>${lista(z.activitati, (a) => `${esc(a.denumire)}${a.cantitate ? ` · ${esc(a.cantitate)} ${esc(a.um || '')}` : ''}`)}
+      <h3>Evenimente deosebite</h3>
+      <p>${[z.neconformitati, z.influente_vreme, z.propuneri].every((t) => !t || /^nu sunt$/i.test(t.trim())) ? 'NU SUNT' :
+        [z.neconformitati, z.influente_vreme, z.propuneri].filter((t) => t && !/^nu sunt$/i.test(t.trim())).map(esc).join('<br>')}</p>`
+  }
+
+  function rezumatPv(d) {
+    const c = d.date ?? {}
+    return `
+      <dl class="fise">
+        <div><dt>Categorie</dt><dd>${esc(d.categorie || '—')}</dd></div>
+        <div><dt>Poziție în registru</dt><dd>${d.pozitie ?? '—'}</dd></div>
+      </dl>
+      <h3>Faza verificată</h3><p>${esc(c.faza_lucrare || '—')}</p>
+      <h3>Elemente de identificare</h3><p>${esc(c.elemente_identificare || '—')}</p>
+      <h3>Concluzii</h3><p>${esc(c.concluzii || '—')}</p>`
+  }
+
+  async function deseneazaDocument(cod) {
+    $('ecran-app').querySelector('.app').classList.add('doc-vedere')
+    const dec = decodeaza(cod)
+    if (!dec) { $('pagina').innerHTML = '<p class="eroare">Codul QR nu e valid. Scanează-l din nou.</p>'; return }
+    $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentul…</p>'
+    const tabelDoc = dec.fel === 'j' ? 'jurnal_zile' : 'documente'
+    const coloane = dec.fel === 'j'
+      ? '*, lucrari ( id, nume, antreprenor, beneficiar, santier_obiectiv )'
+      : '*, lucrari ( id, nume, antreprenor, beneficiar, santier_obiectiv ), obiecte ( cod, nume )'
+    const { data: d, error } = await supabase.from(tabelDoc).select(coloane).eq('id', dec.id).maybeSingle()
+    if (error || !d) {
+      $('pagina').innerHTML = `<div class="doc-card"><h1>Documentul nu e disponibil</h1>
+        <p>Nu există sau contul <strong>${esc($('utilizator').textContent)}</strong> nu are acces la el. Dacă e documentul altei firme, intră cu contul de acolo.</p>
+        <p><a href="./">Vezi lucrările tale</a></p></div>`
+      return
+    }
+    const l = d.lucrari ?? {}
+    const eJurnal = dec.fel === 'j'
+    const titlu = eJurnal
+      ? `Jurnal de șantier nr. ${d.nr}`
+      : `PV lucrări ascunse${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`
+    const data = dataRo(eJurnal ? d.data : d.data_doc)
+
+    $('pagina').innerHTML = `
+      <p class="inapoi"><a href="./#${esc(l.id)}">← Cartea Tehnică · ${esc(l.nume)}</a></p>
+      <div class="doc-card">
+        <div class="doc-tip">${eJurnal ? 'Zi din jurnalul de șantier' : 'Proces verbal'}${!eJurnal && d.obiecte ? ` · OB. ${esc(d.obiecte.cod)}` : ''}</div>
+        <h1>${esc(titlu)}</h1>
+        <div class="doc-meta">${stare(d.stare)}<span>${data}</span>${d.versiune > 1 ? `<span>versiunea ${d.versiune}</span>` : ''}</div>
+        <dl class="fise">
+          <div><dt>Lucrarea</dt><dd>${esc(l.nume)}</dd></div>
+          <div><dt>Beneficiar</dt><dd>${esc(l.beneficiar || '—')}</dd></div>
+        </dl>
+      </div>
+
+      <section class="doc-card">
+        <h2>Documentul generat</h2>
+        ${d.fisier_docx ? `<p>${descarca(d.fisier_docx)}</p>` : '<p class="gol">E încă ciornă. Se generează la emitere, din Claude.</p>'}
+      </section>
+
+      <section class="doc-card">
+        <h2>Varianta semnată ${eticheta(false)}</h2>
+        <ol class="pasi">
+          <li>Tipărești documentul.</li>
+          <li>Îl semnează cei din tabelul de semnături.</li>
+          <li>Faci poze la toate paginile sau un PDF scanat.</li>
+          <li>Le încarci aici. Documentul devine „semnat”.</li>
+        </ol>
+        <button class="incarca" type="button" disabled>Încarcă poze sau PDF · în lucru</button>
+      </section>
+
+      <section class="doc-card">
+        <h2>Pe scurt</h2>
+        ${eJurnal ? rezumatJurnal(d) : rezumatPv(d)}
+      </section>`
   }
 
   $('pagina').addEventListener('click', async (ev) => {

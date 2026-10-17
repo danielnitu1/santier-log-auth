@@ -36,8 +36,11 @@
 </main>
 <script>
   // d = „j.” (zi de jurnal) sau „p.” (proces verbal) + UUID-ul documentului în base64url.
+  // Adresa din codul QR e tipărită pe documente și nu se schimbă. Aici doar redirecționăm
+  // spre vederea documentului din pagina Cartea Tehnică (care cere login și verifică accesul).
   const d = new URLSearchParams(location.search).get('d') || ''
   const m = d.match(/^([jp])\.([A-Za-z0-9_-]{22})$/)
+  if (m) location.replace('app/?d=' + encodeURIComponent(d))
   if (m) {
     const bin = atob(m[2].replace(/-/g, '+').replace(/_/g, '/') + '==')
     const hex = [...bin].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
