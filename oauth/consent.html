@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Conectare · santier-log</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --text: #1d1d1b; --muted: #6b6a66;
+    --border: #e2e0da; --accent: #c2410c; --accent-text: #ffffff; --error: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161614; --card: #22221f; --text: #f1f0ec; --muted: #a3a29c;
+      --border: #3a3935; --accent: #f97316; --accent-text: #1d1d1b; --error: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+    background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    width: 100%; max-width: 420px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px;
+  }
+  .brand { font-weight: 700; letter-spacing: -0.01em; color: var(--accent); margin: 0 0 4px; }
+  h1 { font-size: 1.35rem; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  label { display: block; font-weight: 600; margin: 0 0 6px; }
+  input {
+    width: 100%; padding: 12px; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 10px; margin: 0 0 16px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  #cod { letter-spacing: 0.4em; font-size: 1.3rem; text-align: center; }
+  button {
+    width: 100%; padding: 12px; font: inherit; font-weight: 600; border-radius: 10px;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); cursor: pointer;
+  }
+  button.secundar { background: transparent; color: var(--text); border-color: var(--border); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  .butoane { display: grid; gap: 10px; margin-top: 8px; }
+  dl { margin: 0 0 16px; border: 1px solid var(--border); border-radius: 10px; }
+  dl div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 12px; }
+  dl div + div { border-top: 1px solid var(--border); }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-weight: 600; text-align: right; word-break: break-all; }
+  .eroare { color: var(--error); margin: 12px 0 0; }
+  .link { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 0; width: auto; font-weight: 400; margin-top: 16px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <p class="brand">santier-log</p>
+
+  <section id="pas-email" hidden>
+    <h1>Intră în cont</h1>
+    <p>Îți trimitem pe email un cod de 6 cifre.</p>
+    <form id="form-email">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" inputmode="email" required>
+      <button type="submit">Trimite codul</button>
+    </form>
+  </section>
+
+  <section id="pas-cod" hidden>
+    <h1>Verifică emailul</h1>
+    <p>Am trimis codul la <strong id="email-afisat"></strong>.</p>
+    <form id="form-cod">
+      <label for="cod">Codul din email</label>
+      <input id="cod" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" required>
+      <button type="submit">Intră</button>
+    </form>
+    <button class="link" id="alt-email" type="button">Folosește alt email</button>
+  </section>
+
+  <section id="pas-acord" hidden>
+    <h1 id="titlu-acord">Permiți accesul?</h1>
+    <p>Aplicația va lucra în santier-log în numele tău, cu drepturile pe care le ai deja.</p>
+    <dl>
+      <div><dt>Aplicația</dt><dd id="client"></dd></div>
+      <div><dt>Contul tău</dt><dd id="cont"></dd></div>
+      <div><dt>Revine la</dt><dd id="redirect"></dd></div>
+    </dl>
+    <div class="butoane">
+      <button id="permite" type="button">Permite accesul</button>
+      <button id="refuza" class="secundar" type="button">Refuză</button>
+    </div>
+    <button class="link" id="iesire" type="button">Nu ești tu? Ieși din cont</button>
+  </section>
+
+  <section id="pas-mesaj" hidden>
+    <h1 id="mesaj-titlu"></h1>
+    <p id="mesaj-text"></p>
+  </section>
+
+  <p class="eroare" id="eroare" role="alert" hidden></p>
+</main>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/+esm'
+
+  // Cheia publică (publishable) e gândită să stea în browser; accesul îl limitează RLS.
+  const SUPABASE_URL = 'https://iynnqvrprudvwgnhynku.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_2LlyrWtb3Qrafj6phg_4Gw_vyw7vyU4'
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+  const authorizationId = new URLSearchParams(location.search).get('authorization_id')
+  const $ = (id) => document.getElementById(id)
+  let emailCurent = ''
+
+  function arata(pas) {
+    for (const id of ['pas-email', 'pas-cod', 'pas-acord', 'pas-mesaj']) $(id).hidden = id !== pas
+  }
+  function eroare(text) {
+    $('eroare').textContent = text || ''
+    $('eroare').hidden = !text
+  }
+  function mesaj(titlu, text) {
+    $('mesaj-titlu').textContent = titlu
+    $('mesaj-text').textContent = text
+    arata('pas-mesaj')
+  }
+  async function cuButon(buton, fn) {
+    buton.disabled = true
+    eroare('')
+    try { await fn() } catch (e) { eroare(e.message || String(e)) } finally { buton.disabled = false }
+  }
+
+  async function incarcaAcordul() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return arata('pas-email')
+
+    const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
+    if (error) return mesaj('Cererea nu mai e valabilă', 'Pornește din nou conectarea din aplicația Claude. ' + error.message)
+
+    // Fără authorization_id: utilizatorul a mai aprobat clientul ăsta, mergem direct înapoi.
+    if (!('authorization_id' in data)) return location.replace(data.redirect_url)
+
+    $('client').textContent = data.client?.name || data.client?.client_id || 'aplicație necunoscută'
+    $('titlu-acord').textContent = `Permiți accesul pentru ${$('client').textContent}?`
+    $('cont').textContent = user.email
+    $('redirect').textContent = new URL(data.redirect_uri).host
+    arata('pas-acord')
+  }
+
+  async function decide(aproba) {
+    const { data, error } = aproba
+      ? await supabase.auth.oauth.approveAuthorization(authorizationId, { skipBrowserRedirect: true })
+      : await supabase.auth.oauth.denyAuthorization(authorizationId, { skipBrowserRedirect: true })
+    if (error) throw error
+    location.replace(data.redirect_url)
+  }
+
+  $('form-email').addEventListener('submit', (ev) => {
+    ev.preventDefault()
+    cuButon(ev.submitter, async () => {
+      emailCurent = $('email').value.trim()
+      // Doar conturi create de administrator: pilotul nu are înscriere liberă.
+      const { error } = await supabase.auth.signInWithOtp({ email: emailCurent, options: { shouldCreateUser: false } })
+      if (error) throw new Error(error.message.includes('not allowed') || error.status === 422
+        ? 'Adresa asta nu are cont în santier-log. Cere-i administratorului să te adauge.'
+        : error.message)
+      $('email-afisat').textContent = emailCurent
+      arata('pas-cod')
+      $('cod').focus()
+    })
+  })
+
+  $('form-cod').addEventListener('submit', (ev) => {
+    ev.preventDefault()
+    cuButon(ev.submitter, async () => {
+      const { error } = await supabase.auth.verifyOtp({ email: emailCurent, token: $('cod').value.trim(), type: 'email' })
+      if (error) throw new Error('Codul nu e bun sau a expirat. ' + error.message)
+      await incarcaAcordul()
+    })
+  })
+
+  $('alt-email').addEventListener('click', () => { eroare(''); arata('pas-email') })
+  $('permite').addEventListener('click', (ev) => cuButon(ev.currentTarget, () => decide(true)))
+  $('refuza').addEventListener('click', (ev) => cuButon(ev.currentTarget, () => decide(false)))
+  $('iesire').addEventListener('click', async () => { await supabase.auth.signOut(); eroare(''); arata('pas-email') })
+
+  if (!authorizationId) {
+    mesaj('Pagina de conectare santier-log', 'Pagina se deschide singură când conectezi santier-log din aplicația Claude.')
+  } else {
+    incarcaAcordul().catch((e) => { arata('pas-email'); eroare(e.message || String(e)) })
+  }
+</script>
+</body>
+</html>
