@@ -71,6 +71,16 @@
   .antet dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 4px 20px; margin: 0; font-size: 14px; }
   .antet dt { color: var(--muted); font-size: 12px; }
   .antet dd { margin: 0 0 6px; }
+  .sigle { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 12px 14px; }
+  .sigle-cap small { display: block; color: var(--muted); font-size: 13px; }
+  .sigle-locuri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+  .sigla-loc { display: grid; gap: 6px; min-width: 0; }
+  .sigla-cutie { height: 64px; border: 1px dashed var(--line); border-radius: 8px; display: grid; place-items: center; background: var(--bg); overflow: hidden; font-size: 12px; }
+  .sigla-cutie img { max-width: 100%; max-height: 56px; object-fit: contain; }
+  .sigla-actiuni { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .sigla-eticheta { color: var(--muted); font-size: 12px; flex: 1 0 100%; }
+  .sigla-actiuni .descarca { cursor: pointer; }
+  @media (max-width: 760px) { .sigla-actiuni .descarca { min-height: 40px; padding: 6px 12px; display: inline-flex; align-items: center; } }
   .persoane { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .persoane span { font-size: 12px; background: var(--hover); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
 
@@ -341,7 +351,7 @@
 
     const [{ data: membri }, { data: lc, error }] = await Promise.all([
       supabase.from('membri').select('rol, firme ( nume )').eq('user_id', user.id),
-      supabase.from('lucrari').select('id, nume, antreprenor, beneficiar, santier_obiectiv, tip, obiecte ( id, cod, nume, text_antet, ordine ), persoane_lucrare ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
+      supabase.from('lucrari').select('id, firma_id, nume, antreprenor, beneficiar, santier_obiectiv, tip, sigle, obiecte ( id, cod, nume, text_antet, ordine ), persoane_lucrare ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
     ])
     $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || '—'
     if (error) { $('pagina').innerHTML = `<p class="eroare">${esc(error.message)}</p>`; return }
@@ -371,6 +381,7 @@
       supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('lucrare_id', id),
     ])
     deseneazaLucrarea(selectata, zile ?? [], docs ?? [])
+    arataSigle()
   }
 
   // ---------- Randare ----------
@@ -449,6 +460,76 @@
       <div class="lista">${lista.map((t) => rand(typeof t === 'string' ? { cod: '', nume: t } : t)).join('')}</div></details>`
   }
 
+  // ---------- Siglele din antetul documentelor ----------
+  const LOCURI_SIGLE = ['Stânga', 'Mijloc', 'Dreapta']
+
+  function sectiuneSigle(l) {
+    const sigle = Array.isArray(l.sigle) ? l.sigle : [null, null, null]
+    return `<div class="sigle" data-lucrare="${esc(l.id)}">
+      <div class="sigle-cap"><strong>Sigle pe documente</strong><small>Apar sus pe fiecare document nou: beneficiar, constructor, dirigenție.</small></div>
+      <div class="sigle-locuri">${LOCURI_SIGLE.map((loc, i) => `
+        <div class="sigla-loc">
+          <div class="sigla-cutie" data-cale="${esc(sigle[i] || '')}">${sigle[i] ? '<span class="semnat-gol">…</span>' : '<span class="semnat-gol">fără siglă</span>'}</div>
+          <div class="sigla-actiuni">
+            <span class="sigla-eticheta">${loc}</span>
+            <label class="descarca" for="sigla-${i}">${sigle[i] ? 'Schimbă' : 'Adaugă'}</label>
+            <input id="sigla-${i}" class="sigla-input" data-loc="${i}" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            ${sigle[i] ? `<button class="descarca sigla-scoate" data-loc="${i}" type="button">Scoate</button>` : ''}
+          </div>
+        </div>`).join('')}
+      </div>
+      <p class="stare-incarcare" id="stare-sigle" role="status"></p>
+    </div>`
+  }
+
+  // Previzualizările siglelor se încarcă după randare, prin linkuri semnate de scurtă durată.
+  async function arataSigle() {
+    for (const cutie of document.querySelectorAll('.sigla-cutie[data-cale]')) {
+      const cale = cutie.dataset.cale
+      if (!cale) continue
+      const { data } = await supabase.storage.from('documente').createSignedUrl(cale, 600)
+      if (data?.signedUrl) cutie.innerHTML = `<img src="${esc(data.signedUrl)}" alt="Sigla">`
+    }
+  }
+
+  // Sigla se salvează ca PNG (păstrează transparența), cel mult 800 × 300 px.
+  async function siglaPng(f) {
+    const img = await createImageBitmap(f)
+    const k = Math.min(1, 800 / img.width, 300 / img.height)
+    const c = document.createElement('canvas')
+    c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k))
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+    return await new Promise((r) => c.toBlob(r, 'image/png'))
+  }
+
+  async function salveazaSigle(loc, cale) {
+    const l = selectata
+    const sigle = Array.isArray(l.sigle) ? [...l.sigle] : [null, null, null]
+    sigle[loc] = cale
+    const { error } = await supabase.from('lucrari').update({ sigle }).eq('id', l.id)
+    if (error) throw new Error(/row-level|permission/i.test(error.message) ? 'Contul tău poate doar vedea lucrarea.' : error.message)
+    l.sigle = sigle
+  }
+
+  $('pagina').addEventListener('change', async (ev) => {
+    if (!ev.target.classList?.contains('sigla-input') || !ev.target.files[0]) return
+    const loc = Number(ev.target.dataset.loc)
+    const stareEl = $('stare-sigle')
+    stareEl.classList.remove('eroare')
+    stareEl.textContent = 'Se încarcă sigla…'
+    try {
+      const png = await siglaPng(ev.target.files[0])
+      const cale = `firme/${selectata.firma_id}/lucrari/${selectata.id}/sigle/${loc + 1}-${Date.now()}.png`
+      const { error } = await supabase.storage.from('documente').upload(cale, png, { contentType: 'image/png' })
+      if (error) throw error
+      await salveazaSigle(loc, cale)
+      alege(selectata.id)
+    } catch (e) {
+      stareEl.textContent = 'Sigla nu s-a salvat: ' + (e.message || e)
+      stareEl.classList.add('eroare')
+    }
+  })
+
   function deseneazaLucrarea(l, zile, docs) {
     const obiecte = [...(l.obiecte ?? [])].sort((a, b) => a.ordine - b.ordine)
     const persoane = [...(l.persoane_lucrare ?? [])].sort((a, b) => a.ordine - b.ordine)
@@ -483,6 +564,7 @@
           <div><dt>Șantier / obiectiv</dt><dd>${esc(l.santier_obiectiv || '—')}</dd></div>
         </dl>
         ${persoane.length ? `<div class="persoane">${persoane.map((p) => `<span>${esc(ROLURI[p.rol] ?? p.rol)}: ${esc(p.nume)}</span>`).join('')}</div>` : ''}
+        ${sectiuneSigle(l)}
       </div>
 
       <div class="progres">
@@ -676,7 +758,15 @@
       cap.nextElementSibling.hidden = deschis
       return
     }
-    const b = ev.target.closest('.descarca')
+    const scoate = ev.target.closest('.sigla-scoate')
+    if (scoate) {
+      scoate.disabled = true
+      try { await salveazaSigle(Number(scoate.dataset.loc), null); alege(selectata.id) } catch (e) {
+        $('stare-sigle').textContent = e.message; $('stare-sigle').classList.add('eroare'); scoate.disabled = false
+      }
+      return
+    }
+    const b = ev.target.closest('button.descarca[data-cale]')
     if (b) {
       b.disabled = true
       const { data, error } = await supabase.storage.from('documente').createSignedUrl(b.dataset.cale, 120, { download: b.dataset.cale.split('/').pop() })
