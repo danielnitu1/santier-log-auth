@@ -37,7 +37,7 @@
   .card h1 { font-size: 1.3rem; margin: 6px 0 8px; }
   .card p { color: var(--muted); margin: 0 0 16px; }
   label { display: block; font-weight: 600; margin-bottom: 6px; }
-  input { width: 100%; padding: 11px 12px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px; }
+  input { width: 100%; padding: 11px 12px; font: inherit; font-size: 16px; /* sub 16px, iPhone face zoom în câmp */ color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px; }
   input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
   .btn:disabled { opacity: .6; cursor: wait; }
@@ -46,7 +46,7 @@
 
   /* Aplicația */
   .bara {
-    position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px;
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; display: flex; align-items: center; gap: 12px;
     padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
     background: var(--panel); border-bottom: 1px solid var(--line);
   }
@@ -115,16 +115,53 @@
   .descarca:hover { border-color: var(--accent); color: var(--accent); }
 
   .obiect { display: grid; gap: 12px; }
+
+  /* Grupuri „în lucru”, strânse implicit. */
+  .grupuri-wip { display: grid; gap: 8px; }
+  details.grup-wip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  details.grup-wip > summary {
+    list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+    padding: 12px 14px; min-height: 48px;
+  }
+  details.grup-wip > summary::-webkit-details-marker { display: none; }
+  details.grup-wip > summary::after { content: "›"; color: var(--faint); font-size: 20px; line-height: 1; transition: transform .15s; }
+  details.grup-wip[open] > summary::after { transform: rotate(90deg); }
+  details.grup-wip > summary:hover { background: var(--hover); }
+  details.grup-wip > summary .nume small { display: block; color: var(--muted); font-size: 12px; }
+  details.grup-wip .lista { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+  @media (prefers-reduced-motion: reduce) { details.grup-wip > summary::after { transition: none; } }
   .obiect > h3 { margin: 0; font-size: 16px; }
 
   @media (max-width: 760px) {
     .app { grid-template-columns: 1fr; }
-    aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px max(16px, env(safe-area-inset-left, 0px)); display: flex; gap: 6px; overflow-x: auto; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 0; }
     aside h2 { display: none; }
-    .lucrare-btn { width: auto; flex: 0 0 auto; }
-    .tip-cap { grid-template-columns: 44px minmax(0, 1fr) auto; }
-    .docs { padding-left: 14px; }
+    #lucrari {
+      display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity;
+      padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+    }
+    .lucrare-btn { width: auto; flex: 0 0 auto; max-width: 75vw; scroll-snap-align: start; border: 1px solid var(--line); }
+    .lucrare-btn strong, .lucrare-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tip-cap { grid-template-columns: 44px minmax(0, 1fr) auto; min-height: 52px; }
+    .docs { padding: 4px 12px 12px; }
     .bara .email { display: none; }
+    .bara .dreapta button { min-height: 40px; padding: 6px 14px; }
+
+    /* Tabelele devin carduri: fiecare rând e un card, fiecare celulă „Etichetă … valoare”. */
+    .tabel { overflow: visible; }
+    .tabel table, .tabel tbody, .tabel tr, .tabel td { display: block; width: 100%; }
+    .tabel thead { display: none; }
+    .tabel tr {
+      display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px;
+      border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; margin-bottom: 8px; background: var(--panel);
+    }
+    .tabel td { display: flex; flex-direction: column; justify-content: center; gap: 2px; border: 0; padding: 6px 0; min-height: 36px; width: auto; }
+    .tabel td::before { content: attr(data-label); color: var(--muted); font-size: 12px; flex: 0 0 auto; }
+    .tabel td > * { align-self: flex-start; }
+    .tabel td.lat { display: block; grid-column: 1 / -1; }
+    .tabel td.lat::before { display: block; margin-bottom: 2px; }
+    .tabel td.titlu-card { font-weight: 600; }
+    .descarca { min-height: 40px; padding: 6px 14px; font-size: 14px; }
   }
 </style>
 </head>
@@ -321,26 +358,48 @@
     </div>`
   }
 
+  // Tabel care pe telefon devine carduri: fiecare celulă își poartă eticheta în data-label.
+  // coloane: [titlu, (rând) => html, clasă opțională]
+  function tabel(coloane, randuri) {
+    return `<div class="tabel"><table><thead><tr>${coloane.map(([t]) => `<th>${t}</th>`).join('')}</tr></thead><tbody>${
+      randuri.map((r) => `<tr>${coloane.map(([t, f, cls]) => `<td data-label="${t}"${cls ? ` class="${cls}"` : ''}>${f(r)}</td>`).join('')}</tr>`).join('')
+    }</tbody></table></div>`
+  }
+  const colStare = ['Stare', (d) => stare(d.stare)]
+  const colGenerat = ['Generat', (d) => descarca(d.fisier_docx) || '<span class="semnat-gol">—</span>']
+  const colSemnat = ['Semnat', semnat]
+
   function corpJurnal(zile) {
-    const tabel = zile.length ? `<div class="tabel"><table><thead><tr><th>Nr.</th><th>Data</th><th>Stare</th><th>Versiune</th><th>Generat</th><th>Semnat</th></tr></thead><tbody>${
-      zile.map((z) => `<tr><td>${z.nr}</td><td>${dataRo(z.data)}</td><td>${stare(z.stare)}</td><td>${z.versiune || '—'}</td><td>${descarca(z.fisier_docx)}</td><td>${semnat(z)}</td></tr>`).join('')
-    }</tbody></table></div>` : '<p class="gol">Nicio zi încă.</p>'
-    return tabel + `<p class="sfat">${SFATURI.jurnal}</p>` + SFAT_SEMNAT
+    const t = zile.length ? tabel([
+      ['Nr.', (z) => z.nr, 'titlu-card'], ['Data', (z) => dataRo(z.data), 'titlu-card'], colStare,
+      ['Versiune', (z) => z.versiune || '—'], colGenerat, colSemnat,
+    ], zile) : '<p class="gol">Nicio zi încă.</p>'
+    return t + `<p class="sfat">${SFATURI.jurnal}</p>` + SFAT_SEMNAT
   }
 
   function corpPv(lista, tip) {
-    const tabel = lista.length ? `<div class="tabel"><table><thead><tr><th>Nr. PV</th><th>Data</th><th>Descriere</th><th>Stare</th><th>Generat</th><th>Semnat</th></tr></thead><tbody>${
-      lista.map((d) => `<tr><td>${d.nr_pv ?? '—'}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td><td>${semnat(d)}</td></tr>`).join('')
-    }</tbody></table></div>` : '<p class="gol">Niciun PV încă.</p>'
-    return tabel + `<p class="sfat">${SFATURI[tip] ?? ''}</p>` + SFAT_SEMNAT
+    const t = lista.length ? tabel([
+      ['Nr. PV', (d) => d.nr_pv ?? '—', 'titlu-card'], ['Data', (d) => dataRo(d.data_doc), 'titlu-card'],
+      ['Descriere', (d) => esc(d.descriere || ''), 'lat'], colStare, colGenerat, colSemnat,
+    ], lista) : '<p class="gol">Niciun PV încă.</p>'
+    return t + `<p class="sfat">${SFATURI[tip] ?? ''}</p>` + SFAT_SEMNAT
   }
 
   function corpRegistru(lista) {
     const reg = lista.filter((d) => d.pozitie != null).sort((a, b) => a.pozitie - b.pozitie)
-    const tabel = reg.length ? `<div class="tabel"><table><thead><tr><th>Nr. crt.</th><th>Nr. PV</th><th>Data</th><th>Document</th><th>Categorie</th><th>Descriere</th><th>Stare</th><th>Generat</th><th>Semnat</th></tr></thead><tbody>${
-      reg.map((d) => `<tr><td>${d.pozitie}</td><td>${d.nr_pv}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.tip === 'pv_lucrari_ascunse' ? 'PV lucrări ascunse' : d.tip)}</td><td>${esc(d.categorie || '')}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td><td>${semnat(d)}</td></tr>`).join('')
-    }</tbody></table></div>` : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
-    return tabel + '<p class="sfat">Excelul registrului îl ceri din Claude: <q>Dă-mi registrul obiectului în Excel.</q></p>'
+    const t = reg.length ? tabel([
+      ['Nr. crt.', (d) => d.pozitie, 'titlu-card'], ['Nr. PV', (d) => d.nr_pv, 'titlu-card'], ['Data', (d) => dataRo(d.data_doc)],
+      ['Document', (d) => esc(d.tip === 'pv_lucrari_ascunse' ? 'PV lucrări ascunse' : d.tip)],
+      ['Categorie', (d) => esc(d.categorie || '')], ['Descriere', (d) => esc(d.descriere || ''), 'lat'],
+      colStare, colGenerat, colSemnat,
+    ], reg) : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
+    return t + '<p class="sfat">Excelul registrului îl ceri din Claude: <q>Dă-mi registrul obiectului în Excel.</q></p>'
+  }
+
+  // Un grup întreg „în lucru” se strânge într-un rând care se deschide la atingere.
+  function grupInLucru(titlu, lista) {
+    return `<details class="grup-wip"><summary><span class="nume">${esc(titlu)}<small>${lista.length} ${lista.length === 1 ? 'model' : 'modele'}</small></span>${eticheta(false)}</summary>
+      <div class="lista">${lista.map((t) => rand(typeof t === 'string' ? { cod: '', nume: t } : t)).join('')}</div></details>`
   }
 
   function deseneazaLucrarea(l, zile, docs) {
@@ -362,15 +421,11 @@
         <section class="grup"><h2>PV construcții <small>${PV_CONSTRUCTII.length}</small></h2><div class="lista">
           ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: pvLa.length, corp: corpPv(pvLa, t.activ) }) : rand(t)).join('')}
         </div></section>
-        <section class="grup"><h2>PV instalații <small>${PV_INSTALATII.length}</small></h2><div class="lista">
-          ${PV_INSTALATII.map((t) => rand(t)).join('')}
-        </div></section>
+        <section class="grup">${grupInLucru('PV instalații', PV_INSTALATII)}</section>
       </div>`
     }).join('')
 
-    const documenteHtml = Object.entries(DOCUMENTE_LUCRARE).map(([cat, lista]) =>
-      `<section class="grup"><h2>${esc(cat)} <small>${lista.length}</small></h2><div class="lista">${lista.map((n) => rand({ cod: '', nume: n })).join('')}</div></section>`
-    ).join('')
+    const documenteHtml = `<div class="grupuri-wip">${Object.entries(DOCUMENTE_LUCRARE).map(([cat, lista]) => grupInLucru(cat, lista)).join('')}</div>`
 
     $('pagina').innerHTML = `
       <div class="antet">
