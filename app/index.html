@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Cartea Tehnică · santier-log</title>
+<style>
+  /* Layout: bară sus cu firma; stânga lucrările; dreapta Cartea Tehnică a lucrării alese, pe secțiuni ca dosarul fizic. */
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #1f1e1b; --muted: #6b6a66; --faint: #9a988f;
+    --line: #e4e2dc; --hover: #f0eee9; --accent: #c2410c; --accent-soft: #fdebe1;
+    --ok: #15803d; --ok-soft: #e3f3e8; --wip: #78766f; --wip-soft: #efede8;
+    --warn: #a16207; --warn-soft: #fbf1d9;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161614; --panel: #1f1f1c; --ink: #f1f0ec; --muted: #a3a29c; --faint: #75746e;
+      --line: #34332f; --hover: #282824; --accent: #f97316; --accent-soft: #3a2519;
+      --ok: #4ade80; --ok-soft: #1c2f22; --wip: #a3a29c; --wip-soft: #2a2a26;
+      --warn: #facc15; --warn-soft: #33290f;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); }
+  button { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+
+  /* Login */
+  .login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .card { width: 100%; max-width: 400px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px 24px; }
+  .brand { font-weight: 700; color: var(--accent); }
+  .card h1 { font-size: 1.3rem; margin: 6px 0 8px; }
+  .card p { color: var(--muted); margin: 0 0 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input { width: 100%; padding: 11px 12px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px; }
+  input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  .link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; margin-top: 12px; }
+  .eroare { color: var(--accent); margin-top: 12px; }
+
+  /* Aplicația */
+  .bara {
+    position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px;
+    padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .bara .firma { font-weight: 600; }
+  .bara .sep { color: var(--faint); }
+  .bara .dreapta { margin-left: auto; display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 13px; }
+  .bara .dreapta button { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+
+  .app { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: calc(100vh - 50px); }
+  aside { border-right: 1px solid var(--line); padding: 16px 10px; background: var(--panel); }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); margin: 0 6px 8px; font-weight: 600; }
+  .lucrare-btn { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 9px 10px; cursor: pointer; }
+  .lucrare-btn:hover { background: var(--hover); }
+  .lucrare-btn[aria-current="true"] { background: var(--accent-soft); }
+  .lucrare-btn strong { display: block; font-weight: 600; }
+  .lucrare-btn span { color: var(--muted); font-size: 13px; }
+
+  main { min-width: 0; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
+  .continut { max-width: 920px; margin: 0 auto; display: grid; gap: 22px; }
+
+  .antet h1 { font-size: clamp(22px, 4vw, 30px); margin: 0 0 6px; text-wrap: balance; }
+  .antet dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 4px 20px; margin: 0; font-size: 14px; }
+  .antet dt { color: var(--muted); font-size: 12px; }
+  .antet dd { margin: 0 0 6px; }
+  .persoane { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .persoane span { font-size: 12px; background: var(--hover); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+
+  .progres { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
+  .progres .rand { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+  .bara-progres { height: 8px; border-radius: 99px; background: var(--wip-soft); overflow: hidden; }
+  .bara-progres i { display: block; height: 100%; background: var(--ok); }
+  .legenda { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+
+  section.grup h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; font-weight: 700; display: flex; gap: 8px; align-items: baseline; }
+  section.grup h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
+  .lista { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .tip { border-top: 1px solid var(--line); }
+  .tip:first-child { border-top: 0; }
+  .tip-cap { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; width: 100%; text-align: left; background: none; border: 0; }
+  .tip-cap[aria-expanded] { cursor: pointer; }
+  .tip-cap[aria-expanded]:hover { background: var(--hover); }
+  .cod { font: 12px var(--mono); color: var(--faint); }
+  .nume { min-width: 0; }
+  .nume small { display: block; color: var(--muted); font-size: 12px; }
+  .tip.wip .nume { color: var(--muted); }
+  .eticheta { font-size: 12px; font-weight: 600; border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+  .eticheta.ok { color: var(--ok); background: var(--ok-soft); }
+  .eticheta.wip { color: var(--wip); background: var(--wip-soft); font-weight: 500; }
+
+  .docs { padding: 4px 14px 14px 78px; display: grid; gap: 8px; }
+  .docs .gol { color: var(--muted); font-size: 14px; }
+  .docs .sfat { font-size: 13px; color: var(--muted); background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+  .docs .sfat q { color: var(--ink); }
+  .tabel { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); padding: 6px 8px; white-space: nowrap; }
+  td { border-bottom: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .stare { font-size: 12px; border-radius: 6px; padding: 1px 7px; white-space: nowrap; }
+  .stare.ciorna { background: var(--warn-soft); color: var(--warn); }
+  .stare.emis { background: var(--ok-soft); color: var(--ok); }
+  .stare.semnat { background: var(--accent-soft); color: var(--accent); }
+  .stare.anulat { background: var(--wip-soft); color: var(--wip); text-decoration: line-through; }
+  .descarca { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+  .descarca:hover { border-color: var(--accent); color: var(--accent); }
+
+  .obiect { display: grid; gap: 12px; }
+  .obiect > h3 { margin: 0; font-size: 16px; }
+
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px max(16px, env(safe-area-inset-left, 0px)); display: flex; gap: 6px; overflow-x: auto; }
+    aside h2 { display: none; }
+    .lucrare-btn { width: auto; flex: 0 0 auto; }
+    .tip-cap { grid-template-columns: 44px minmax(0, 1fr) auto; }
+    .docs { padding-left: 14px; }
+    .bara .email { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login" id="ecran-login" hidden>
+  <div class="card">
+    <div class="brand">santier-log</div>
+    <section id="pas-email">
+      <h1>Intră în cont</h1>
+      <p>Îți trimitem pe email un cod de 6 cifre.</p>
+      <form id="form-email">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" inputmode="email" required>
+        <button class="btn" type="submit">Trimite codul</button>
+      </form>
+    </section>
+    <section id="pas-cod" hidden>
+      <h1>Verifică emailul</h1>
+      <p>Am trimis codul la <strong id="email-afisat"></strong>.</p>
+      <form id="form-cod">
+        <label for="cod">Codul din email</label>
+        <input id="cod" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" required>
+        <button class="btn" type="submit">Intră</button>
+      </form>
+      <button class="link" id="alt-email" type="button">Folosește alt email</button>
+    </section>
+    <p class="eroare" id="eroare-login" role="alert" hidden></p>
+  </div>
+</div>
+
+<div id="ecran-app" hidden>
+  <header class="bara">
+    <span class="brand">santier-log</span><span class="sep">/</span><span class="firma" id="firma">—</span>
+    <div class="dreapta"><span class="email" id="utilizator"></span><button id="iesire" type="button">Ieși</button></div>
+  </header>
+  <div class="app">
+    <aside aria-label="Lucrări"><h2>Lucrări</h2><div id="lucrari"></div></aside>
+    <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă lucrările…</p></div></main>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/+esm'
+
+  const supabase = createClient('https://iynnqvrprudvwgnhynku.supabase.co', 'sb_publishable_2LlyrWtb3Qrafj6phg_4Gw_vyw7vyU4')
+  const $ = (id) => document.getElementById(id)
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  const dataRo = (iso) => iso ? iso.slice(0, 10).split('-').reverse().join('.') : ''
+
+  // Catalogul complet al Cărții Tehnice. `activ` = îl generează santier-log azi; restul e în lucru.
+  const JURNALE = [
+    { cod: 'JS-01', nume: 'Jurnal de șantier', desc: 'fișa zilnică', activ: 'jurnal' },
+    { cod: 'JS-02', nume: 'Condică de betoane', desc: 'jurnal continuu' },
+    { cod: 'JS-03', nume: 'Fișă așternere mixturi asfaltice', desc: 'fișe pe zile' },
+    { cod: 'JS-04', nume: 'Borderou', desc: 'cuprinsul Cărții Tehnice' },
+  ]
+  const PV_CONSTRUCTII = [
+    { cod: 'PC-01', nume: 'PV de trasare' },
+    { cod: 'PC-02', nume: 'PV verificare cotă fundare' },
+    { cod: 'PC-03', nume: 'PV recepție calitativă' },
+    { cod: 'PC-04', nume: 'PV recepție materiale' },
+    { cod: 'PC-05', nume: 'PV lucrări ascunse', activ: 'pv_lucrari_ascunse' },
+    { cod: 'PC-06', nume: 'PV aspect beton după decofrare' },
+    { cod: 'PC-07', nume: 'PV natură teren fundare' },
+    { cod: 'PC-08', nume: 'PV trasabilitate armătură' },
+    { cod: 'PC-09', nume: 'Document propriu încărcat', desc: 'PDF scanat, certificat, buletin' },
+  ]
+  const PV_INSTALATII = [
+    'PV probă presiune la cald', 'PV probă presiune la rece', 'PV continuitate și izolație conductor',
+    'PV încercare prize de pământ', 'PV predare-primire front de lucru (instalații)', 'PV probă funcționare a instalației',
+    'PV punere în funcțiune (funcționalitate echipament)', 'PV etanșeitate conducte interioare canalizare',
+    'PV etanșeitate conducte exterioare canalizare', 'PV etanșeitate tuburi/țevi',
+    'PV etanșeitate canale de aer ventilare-climatizare', 'PV etanșeitate canale cu nivel liber',
+  ].map((nume, i) => ({ cod: `PI-${String(i + 1).padStart(2, '0')}`, nume }))
+  const DOCUMENTE_LUCRARE = {
+    'Documente RTE': ['Referat de prezentare RTE'],
+    'Diriginte de șantier': ['Dispoziție de oprire a execuției lucrărilor', 'Raport de neconformitate',
+      'Referatul dirigintelui de șantier (recepția la terminare)', 'Înștiințare I.S.C. — oprirea lucrărilor (24 de ore)'],
+    'Executant / Șef de șantier': ['Notificare decalare termen de remediere', 'Notificare reluarea lucrărilor',
+      'Notificare suspendarea lucrărilor', 'Notificare termen de recepție stabilit de executant',
+      'Propunere de modificare de detaliu a proiectului', 'Reînnoirea cererii de convocare a comisiei de recepție',
+      'Solicitare de clarificări către proiectant'],
+    'Beneficiar / Investitor': ['Convocarea comisiei de recepție', 'Decizie de numire a comisiei de recepție',
+      'PV predare-primire amplasament', 'PV predare-primire construcție către proprietar',
+      'Solicitare desemnare reprezentant în comisia de recepție', 'Somație de remediere către executant',
+      'Înștiințare începerea lucrărilor — I.S.C. (F_A_09)', 'Înștiințare începerea lucrărilor — Primărie (F_A_08)',
+      'Înștiințare încheierea lucrărilor — I.S.C. (F_A_11)', 'Înștiințare încheierea lucrărilor — Primărie (F_A_10)'],
+    'Avize și acorduri': ['Convenție F4 — drept de traversare și acces (DEER)'],
+    'Corespondență și adrese': ['Adresă către I.S.C. — documentele pentru recepție', 'Adresă de înaintare a situației de lucrări',
+      'Adresă de înaintare documente', 'Cerere prelungire autorizație de construire (F_A_02)',
+      'Cerere prelungire termen de execuție (contract)', 'Comunicare terminarea lucrărilor și solicitare recepție',
+      'Comunicarea procesului-verbal de recepție', 'Comunicarea suspendării recepției către executant',
+      'Convocare I.S.C. la fază determinantă', 'Solicitare organizare recepție finală (expirarea garanției)', 'Somație de plată'],
+    'Situații de lucrări': ['Notă de comandă suplimentară (NCS)', 'Notă de renunțare (NR)'],
+    'Securitate și sănătate (SSM)': ['Fișă de instruire colectivă SSM (Anexa 12)'],
+    'Mediu': ['Formular încărcare-descărcare deșeuri nepericuloase (Anexa 3)'],
+    'Recepție la terminarea lucrărilor': ['PV de recepție parțială (Anexa 1)', 'PV de recepție la terminarea lucrărilor (Anexa 2)',
+      'PV de suspendare a recepției la terminare (Anexa 3)'],
+    'Recepție finală': ['PV de recepție finală (Anexa 4)', 'PV de suspendare a recepției finale (Anexa 5)'],
+    'Cartea tehnică a construcției': ['Fișa de date sintetice'],
+  }
+  const SFATURI = {
+    jurnal: 'Spune-i lui Claude: <q>Azi pe [lucrare]: 4 dulgheri, cofrare stâlpi axa B 12 mp, macara turn. Mâine turnăm.</q>',
+    pv_lucrari_ascunse: 'Spune-i lui Claude: <q>Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6, proiect 45/2026.</q>',
+  }
+  const ROLURI = { manager_proiect: 'Manager proiect', sef_santier: 'Șef șantier', responsabil_cq: 'CQ', supervizor: 'Supervizor',
+    rte: 'RTE', diriginte: 'Diriginte', proiectant: 'Proiectant', reprezentant_beneficiar: 'Repr. beneficiar' }
+  const STARI = { ciorna: 'ciornă', emis: 'emis', semnat: 'semnat', anulat: 'anulat' }
+
+  let lucrari = []
+  let selectata = null
+
+  // ---------- Login ----------
+  let emailCurent = ''
+  function eroareLogin(t) { $('eroare-login').textContent = t || ''; $('eroare-login').hidden = !t }
+  $('form-email').addEventListener('submit', async (ev) => {
+    ev.preventDefault(); const b = ev.submitter; b.disabled = true; eroareLogin('')
+    emailCurent = $('email').value.trim()
+    const { error } = await supabase.auth.signInWithOtp({ email: emailCurent, options: { shouldCreateUser: false } })
+    b.disabled = false
+    if (error) return eroareLogin(error.status === 422 || /not allowed|signups/i.test(error.message)
+      ? 'Adresa asta nu are cont în santier-log.' : error.message)
+    $('email-afisat').textContent = emailCurent; $('pas-email').hidden = true; $('pas-cod').hidden = false; $('cod').focus()
+  })
+  $('form-cod').addEventListener('submit', async (ev) => {
+    ev.preventDefault(); const b = ev.submitter; b.disabled = true; eroareLogin('')
+    const { error } = await supabase.auth.verifyOtp({ email: emailCurent, token: $('cod').value.trim(), type: 'email' })
+    b.disabled = false
+    if (error) return eroareLogin('Codul nu e bun sau a expirat.')
+    porneste()
+  })
+  $('alt-email').addEventListener('click', () => { $('pas-cod').hidden = true; $('pas-email').hidden = false; eroareLogin('') })
+  $('iesire').addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
+
+  // ---------- Date ----------
+  async function porneste() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { $('ecran-login').hidden = false; $('ecran-app').hidden = true; return }
+    $('ecran-login').hidden = true; $('ecran-app').hidden = false
+    $('utilizator').textContent = user.email
+
+    const [{ data: membri }, { data: lc, error }] = await Promise.all([
+      supabase.from('membri').select('rol, firme ( nume )').eq('user_id', user.id),
+      supabase.from('lucrari').select('id, nume, antreprenor, beneficiar, santier_obiectiv, tip, obiecte ( id, cod, nume, text_antet, ordine ), persoane_lucrare ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
+    ])
+    $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || '—'
+    if (error) { $('pagina').innerHTML = `<p class="eroare">${esc(error.message)}</p>`; return }
+    lucrari = lc ?? []
+    deseneazaLucrari()
+    const dinAdresa = location.hash.slice(1)
+    alege(lucrari.find((l) => l.id === dinAdresa)?.id ?? lucrari[0]?.id)
+  }
+
+  function deseneazaLucrari() {
+    $('lucrari').innerHTML = lucrari.length
+      ? lucrari.map((l) => `<button class="lucrare-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span>${esc(l.beneficiar || l.santier_obiectiv || '')}</span></button>`).join('')
+      : '<p style="color:var(--muted);padding:0 6px">Nicio lucrare încă. Creeaz-o din Claude.</p>'
+  }
+  $('lucrari').addEventListener('click', (ev) => { const b = ev.target.closest('.lucrare-btn'); if (b) alege(b.dataset.id) })
+
+  async function alege(id) {
+    selectata = lucrari.find((l) => l.id === id)
+    for (const b of document.querySelectorAll('.lucrare-btn')) b.setAttribute('aria-current', String(b.dataset.id === id))
+    if (!selectata) { $('pagina').innerHTML = '<p style="color:var(--muted)">Nicio lucrare. Creeaz-o din Claude: <q>Creează lucrarea …</q></p>'; return }
+    history.replaceState(null, '', '#' + id)
+    $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentele…</p>'
+    const [{ data: zile }, { data: docs }] = await Promise.all([
+      supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx').eq('lucrare_id', id).order('data', { ascending: false }),
+      supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx').eq('lucrare_id', id),
+    ])
+    deseneazaLucrarea(selectata, zile ?? [], docs ?? [])
+  }
+
+  // ---------- Randare ----------
+  const eticheta = (activ) => activ ? '<span class="eticheta ok">Disponibil</span>' : '<span class="eticheta wip">În lucru</span>'
+  const stare = (s) => `<span class="stare ${s}">${STARI[s] ?? s}</span>`
+  const descarca = (cale) => cale ? `<button class="descarca" data-cale="${esc(cale)}">Word ↓</button>` : ''
+
+  function rand({ cod, nume, desc }, { activ = false, numar, corp } = {}) {
+    const deschis = activ && corp != null
+    return `<div class="tip ${activ ? '' : 'wip'}">
+      <button class="tip-cap" ${deschis ? 'aria-expanded="false"' : 'disabled'}>
+        <span class="cod">${esc(cod ?? '')}</span>
+        <span class="nume">${esc(nume)}${desc ? `<small>${esc(desc)}</small>` : ''}${activ && numar != null ? `<small>${numar} ${numar === 1 ? 'document' : 'documente'}</small>` : ''}</span>
+        ${eticheta(activ)}
+      </button>
+      ${deschis ? `<div class="docs" hidden>${corp}</div>` : ''}
+    </div>`
+  }
+
+  function corpJurnal(zile) {
+    const tabel = zile.length ? `<div class="tabel"><table><thead><tr><th>Nr.</th><th>Data</th><th>Stare</th><th>Versiune</th><th></th></tr></thead><tbody>${
+      zile.map((z) => `<tr><td>${z.nr}</td><td>${dataRo(z.data)}</td><td>${stare(z.stare)}</td><td>${z.versiune || '—'}</td><td>${descarca(z.fisier_docx)}</td></tr>`).join('')
+    }</tbody></table></div>` : '<p class="gol">Nicio zi încă.</p>'
+    return tabel + `<p class="sfat">${SFATURI.jurnal}</p>`
+  }
+
+  function corpPv(lista, tip) {
+    const tabel = lista.length ? `<div class="tabel"><table><thead><tr><th>Nr. PV</th><th>Data</th><th>Descriere</th><th>Stare</th><th></th></tr></thead><tbody>${
+      lista.map((d) => `<tr><td>${d.nr_pv ?? '—'}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td></tr>`).join('')
+    }</tbody></table></div>` : '<p class="gol">Niciun PV încă.</p>'
+    return tabel + `<p class="sfat">${SFATURI[tip] ?? ''}</p>`
+  }
+
+  function corpRegistru(lista) {
+    const reg = lista.filter((d) => d.pozitie != null).sort((a, b) => a.pozitie - b.pozitie)
+    const tabel = reg.length ? `<div class="tabel"><table><thead><tr><th>Nr. crt.</th><th>Nr. PV</th><th>Data</th><th>Document</th><th>Categorie</th><th>Descriere</th><th>Stare</th><th></th></tr></thead><tbody>${
+      reg.map((d) => `<tr><td>${d.pozitie}</td><td>${d.nr_pv}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.tip === 'pv_lucrari_ascunse' ? 'PV lucrări ascunse' : d.tip)}</td><td>${esc(d.categorie || '')}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td></tr>`).join('')
+    }</tbody></table></div>` : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
+    return tabel + '<p class="sfat">Excelul registrului îl ceri din Claude: <q>Dă-mi registrul obiectului în Excel.</q></p>'
+  }
+
+  function deseneazaLucrarea(l, zile, docs) {
+    const obiecte = [...(l.obiecte ?? [])].sort((a, b) => a.ordine - b.ordine)
+    const persoane = [...(l.persoane_lucrare ?? [])].sort((a, b) => a.ordine - b.ordine)
+
+    const totalTipuri = JURNALE.length + PV_CONSTRUCTII.length + PV_INSTALATII.length + Object.values(DOCUMENTE_LUCRARE).flat().length + 2
+    const activeTipuri = JURNALE.filter((x) => x.activ).length + PV_CONSTRUCTII.filter((x) => x.activ).length + 1 // + registrul
+    const nrDocs = zile.length + docs.length
+
+    const obiecteHtml = obiecte.map((o) => {
+      const aleObiectului = docs.filter((d) => d.obiect_id === o.id)
+      const pvLa = aleObiectului.filter((d) => d.tip === 'pv_lucrari_ascunse')
+      return `<div class="obiect">
+        ${obiecte.length > 1 || l.tip === 'cu_obiecte' ? `<h3>OB. ${esc(o.cod)} — ${esc(o.nume)}</h3>` : ''}
+        <section class="grup"><h2>Registrul obiectului</h2><div class="lista">
+          ${rand({ cod: 'REG', nume: 'Registrul procese verbale', desc: 'ordinea documentelor din dosar' }, { activ: true, numar: aleObiectului.filter((d) => d.pozitie != null).length, corp: corpRegistru(aleObiectului) })}
+        </div></section>
+        <section class="grup"><h2>PV construcții <small>${PV_CONSTRUCTII.length}</small></h2><div class="lista">
+          ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: pvLa.length, corp: corpPv(pvLa, t.activ) }) : rand(t)).join('')}
+        </div></section>
+        <section class="grup"><h2>PV instalații <small>${PV_INSTALATII.length}</small></h2><div class="lista">
+          ${PV_INSTALATII.map((t) => rand(t)).join('')}
+        </div></section>
+      </div>`
+    }).join('')
+
+    const documenteHtml = Object.entries(DOCUMENTE_LUCRARE).map(([cat, lista]) =>
+      `<section class="grup"><h2>${esc(cat)} <small>${lista.length}</small></h2><div class="lista">${lista.map((n) => rand({ cod: '', nume: n })).join('')}</div></section>`
+    ).join('')
+
+    $('pagina').innerHTML = `
+      <div class="antet">
+        <h1>${esc(l.nume)}</h1>
+        <dl>
+          <div><dt>Antreprenor</dt><dd>${esc(l.antreprenor || '—')}</dd></div>
+          <div><dt>Beneficiar</dt><dd>${esc(l.beneficiar || '—')}</dd></div>
+          <div><dt>Șantier / obiectiv</dt><dd>${esc(l.santier_obiectiv || '—')}</dd></div>
+        </dl>
+        ${persoane.length ? `<div class="persoane">${persoane.map((p) => `<span>${esc(ROLURI[p.rol] ?? p.rol)}: ${esc(p.nume)}</span>`).join('')}</div>` : ''}
+      </div>
+
+      <div class="progres">
+        <div class="rand"><strong>Cartea Tehnică a Construcției</strong><span>${nrDocs} ${nrDocs === 1 ? 'document generat' : 'documente generate'}</span></div>
+        <div class="bara-progres" title="${activeTipuri} din ${totalTipuri} tipuri de documente disponibile"><i style="width:${Math.max(3, Math.round(activeTipuri / totalTipuri * 100))}%"></i></div>
+        <div class="legenda"><span>${activeTipuri} din ${totalTipuri} tipuri de documente disponibile azi</span><span>${eticheta(true)} se face din Claude</span><span>${eticheta(false)} urmează</span></div>
+      </div>
+
+      <section class="grup"><h2>Jurnale <small>pentru toată lucrarea</small></h2><div class="lista">
+        ${JURNALE.map((t) => t.activ ? rand(t, { activ: true, numar: zile.length, corp: corpJurnal(zile) }) : rand(t)).join('')}
+      </div></section>
+
+      ${obiecteHtml}
+
+      <section class="grup"><h2>Documentele lucrării <small>${Object.values(DOCUMENTE_LUCRARE).flat().length} modele, pe categorii</small></h2></section>
+      ${documenteHtml}
+
+      <section class="grup"><h2>Dosarul complet</h2><div class="lista">
+        ${rand({ cod: 'CTC', nume: 'Cartea Tehnică completă', desc: 'toate documentele, în ordinea din borderou, într-un singur fișier' })}
+      </div></section>`
+  }
+
+  $('pagina').addEventListener('click', async (ev) => {
+    const cap = ev.target.closest('.tip-cap[aria-expanded]')
+    if (cap) {
+      const deschis = cap.getAttribute('aria-expanded') === 'true'
+      cap.setAttribute('aria-expanded', String(!deschis))
+      cap.nextElementSibling.hidden = deschis
+      return
+    }
+    const b = ev.target.closest('.descarca')
+    if (b) {
+      b.disabled = true
+      const { data, error } = await supabase.storage.from('documente').createSignedUrl(b.dataset.cale, 120, { download: b.dataset.cale.split('/').pop() })
+      b.disabled = false
+      if (error) { b.textContent = 'Eroare'; return }
+      location.href = data.signedUrl
+    }
+  })
+
+  porneste()
+</script>
+</body>
+</html>
