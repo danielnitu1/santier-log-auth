@@ -110,6 +110,7 @@
   .stare.emis { background: var(--ok-soft); color: var(--ok); }
   .stare.semnat { background: var(--accent-soft); color: var(--accent); }
   .stare.anulat { background: var(--wip-soft); color: var(--wip); text-decoration: line-through; }
+  .semnat-gol { color: var(--faint); }
   .descarca { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; white-space: nowrap; }
   .descarca:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -302,6 +303,11 @@
   const eticheta = (activ) => activ ? '<span class="eticheta ok">Disponibil</span>' : '<span class="eticheta wip">În lucru</span>'
   const stare = (s) => `<span class="stare ${s}">${STARI[s] ?? s}</span>`
   const descarca = (cale) => cale ? `<button class="descarca" data-cale="${esc(cale)}">Word ↓</button>` : ''
+  // Varianta semnată: tipărit, semnat, scanat prin QR-ul din subsol. Încărcarea e în lucru (vezi punctele deschise).
+  const semnat = (d) => d.stare === 'ciorna' || d.stare === 'anulat'
+    ? '<span class="semnat-gol">—</span>'
+    : '<span class="eticheta wip" title="Tipărești, semnezi, scanezi codul QR din subsol și încarci poza. Urmează.">Scan · în lucru</span>'
+  const SFAT_SEMNAT = '<p class="sfat">Varianta semnată: tipărești documentul, îl semnezi, scanezi codul QR din subsol și încarci poza. Încărcarea urmează.</p>'
 
   function rand({ cod, nume, desc }, { activ = false, numar, corp } = {}) {
     const deschis = activ && corp != null
@@ -316,23 +322,23 @@
   }
 
   function corpJurnal(zile) {
-    const tabel = zile.length ? `<div class="tabel"><table><thead><tr><th>Nr.</th><th>Data</th><th>Stare</th><th>Versiune</th><th></th></tr></thead><tbody>${
-      zile.map((z) => `<tr><td>${z.nr}</td><td>${dataRo(z.data)}</td><td>${stare(z.stare)}</td><td>${z.versiune || '—'}</td><td>${descarca(z.fisier_docx)}</td></tr>`).join('')
+    const tabel = zile.length ? `<div class="tabel"><table><thead><tr><th>Nr.</th><th>Data</th><th>Stare</th><th>Versiune</th><th>Generat</th><th>Semnat</th></tr></thead><tbody>${
+      zile.map((z) => `<tr><td>${z.nr}</td><td>${dataRo(z.data)}</td><td>${stare(z.stare)}</td><td>${z.versiune || '—'}</td><td>${descarca(z.fisier_docx)}</td><td>${semnat(z)}</td></tr>`).join('')
     }</tbody></table></div>` : '<p class="gol">Nicio zi încă.</p>'
-    return tabel + `<p class="sfat">${SFATURI.jurnal}</p>`
+    return tabel + `<p class="sfat">${SFATURI.jurnal}</p>` + SFAT_SEMNAT
   }
 
   function corpPv(lista, tip) {
-    const tabel = lista.length ? `<div class="tabel"><table><thead><tr><th>Nr. PV</th><th>Data</th><th>Descriere</th><th>Stare</th><th></th></tr></thead><tbody>${
-      lista.map((d) => `<tr><td>${d.nr_pv ?? '—'}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td></tr>`).join('')
+    const tabel = lista.length ? `<div class="tabel"><table><thead><tr><th>Nr. PV</th><th>Data</th><th>Descriere</th><th>Stare</th><th>Generat</th><th>Semnat</th></tr></thead><tbody>${
+      lista.map((d) => `<tr><td>${d.nr_pv ?? '—'}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td><td>${semnat(d)}</td></tr>`).join('')
     }</tbody></table></div>` : '<p class="gol">Niciun PV încă.</p>'
-    return tabel + `<p class="sfat">${SFATURI[tip] ?? ''}</p>`
+    return tabel + `<p class="sfat">${SFATURI[tip] ?? ''}</p>` + SFAT_SEMNAT
   }
 
   function corpRegistru(lista) {
     const reg = lista.filter((d) => d.pozitie != null).sort((a, b) => a.pozitie - b.pozitie)
-    const tabel = reg.length ? `<div class="tabel"><table><thead><tr><th>Nr. crt.</th><th>Nr. PV</th><th>Data</th><th>Document</th><th>Categorie</th><th>Descriere</th><th>Stare</th><th></th></tr></thead><tbody>${
-      reg.map((d) => `<tr><td>${d.pozitie}</td><td>${d.nr_pv}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.tip === 'pv_lucrari_ascunse' ? 'PV lucrări ascunse' : d.tip)}</td><td>${esc(d.categorie || '')}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td></tr>`).join('')
+    const tabel = reg.length ? `<div class="tabel"><table><thead><tr><th>Nr. crt.</th><th>Nr. PV</th><th>Data</th><th>Document</th><th>Categorie</th><th>Descriere</th><th>Stare</th><th>Generat</th><th>Semnat</th></tr></thead><tbody>${
+      reg.map((d) => `<tr><td>${d.pozitie}</td><td>${d.nr_pv}</td><td>${dataRo(d.data_doc)}</td><td>${esc(d.tip === 'pv_lucrari_ascunse' ? 'PV lucrări ascunse' : d.tip)}</td><td>${esc(d.categorie || '')}</td><td>${esc(d.descriere || '')}</td><td>${stare(d.stare)}</td><td>${descarca(d.fisier_docx)}</td><td>${semnat(d)}</td></tr>`).join('')
     }</tbody></table></div>` : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
     return tabel + '<p class="sfat">Excelul registrului îl ceri din Claude: <q>Dă-mi registrul obiectului în Excel.</q></p>'
   }
