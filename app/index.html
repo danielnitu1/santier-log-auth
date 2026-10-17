@@ -324,13 +324,18 @@
     { cod: 'PC-08', nume: 'PV trasabilitate armătură' },
     { cod: 'PC-09', nume: 'Document propriu încărcat', desc: 'PDF scanat, certificat, buletin' },
   ]
+  const ACTIVE_INSTALATII = {
+    'PV probă presiune la rece': 'pv_proba_presiune_rece',
+    'PV încercare prize de pământ': 'pv_prize_pamant',
+    'PV etanșeitate conducte interioare canalizare': 'pv_etanseitate_canalizare_interioara',
+  }
   const PV_INSTALATII = [
     'PV probă presiune la cald', 'PV probă presiune la rece', 'PV continuitate și izolație conductor',
     'PV încercare prize de pământ', 'PV predare-primire front de lucru (instalații)', 'PV probă funcționare a instalației',
     'PV punere în funcțiune (funcționalitate echipament)', 'PV etanșeitate conducte interioare canalizare',
     'PV etanșeitate conducte exterioare canalizare', 'PV etanșeitate tuburi/țevi',
     'PV etanșeitate canale de aer ventilare-climatizare', 'PV etanșeitate canale cu nivel liber',
-  ].map((nume, i) => ({ cod: `PI-${String(i + 1).padStart(2, '0')}`, nume }))
+  ].map((nume, i) => ({ cod: `PI-${String(i + 1).padStart(2, '0')}`, nume, activ: ACTIVE_INSTALATII[nume] }))
   const DOCUMENTE_LUCRARE = {
     'Documente RTE': ['Referat de prezentare RTE'],
     'Diriginte de șantier': ['Dispoziție de oprire a execuției lucrărilor', 'Raport de neconformitate',
@@ -358,8 +363,17 @@
     'Recepție finală': ['PV de recepție finală (Anexa 4)', 'PV de suspendare a recepției finale (Anexa 5)'],
     'Cartea tehnică a construcției': ['Fișa de date sintetice'],
   }
+  const TITLURI_PV = {
+    pv_lucrari_ascunse: 'PV lucrări ascunse',
+    pv_proba_presiune_rece: 'PV probă presiune la rece',
+    pv_etanseitate_canalizare_interioara: 'PV etanșeitate canalizare interioară',
+    pv_prize_pamant: 'PV încercare prize de pământ',
+  }
   const SFATURI = {
     jurnal: 'Spune-i lui Claude: <q>Azi pe [lucrare]: 4 dulgheri, cofrare stâlpi axa B 12 mp, macara turn. Mâine turnăm.</q>',
+    pv_proba_presiune_rece: 'Spune-i lui Claude: <q>Fă PV de probă de presiune la rece pentru apa rece de la parter: 9 bar, 2 ore, fără pierderi.</q>',
+    pv_etanseitate_canalizare_interioara: 'Spune-i lui Claude: <q>Fă PV de etanșeitate pentru canalizarea menajeră interioară: umplut cu apă 24 de ore, fără scurgeri.</q>',
+    pv_prize_pamant: 'Spune-i lui Claude: <q>Fă PV de prize de pământ la TG: 2,8 ohmi, sol umed, aparat Megger DET4TC2 seria 101234.</q>',
     pv_lucrari_ascunse: 'Spune-i lui Claude: <q>Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6, proiect 45/2026.</q>',
   }
   const ROLURI = { manager_proiect: 'Manager proiect', sef_santier: 'Șef șantier', responsabil_cq: 'CQ', supervizor: 'Supervizor',
@@ -495,7 +509,7 @@
     const reg = lista.filter((d) => d.pozitie != null).sort((a, b) => a.pozitie - b.pozitie)
     const t = reg.length ? tabel([
       ['Nr. crt.', (d) => d.pozitie, 'titlu-card'], ['Nr. PV', (d) => d.nr_pv, 'titlu-card'], ['Data', (d) => dataRo(d.data_doc)],
-      ['Document', (d) => esc(d.tip === 'pv_lucrari_ascunse' ? 'PV lucrări ascunse' : d.tip)],
+      ['Document', (d) => esc(TITLURI_PV[d.tip] ?? d.tip)],
       ['Categorie', (d) => esc(d.categorie || '')], ['Descriere', (d) => esc(d.descriere || ''), 'lat'],
       colStare, colGenerat, ['Semnat', semnat('p')],
     ], reg) : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
@@ -637,21 +651,24 @@
     const persoane = [...(l.persoane_lucrare ?? [])].sort((a, b) => a.ordine - b.ordine)
 
     const totalTipuri = JURNALE.length + PV_CONSTRUCTII.length + PV_INSTALATII.length + Object.values(DOCUMENTE_LUCRARE).flat().length + 2
-    const activeTipuri = JURNALE.filter((x) => x.activ).length + PV_CONSTRUCTII.filter((x) => x.activ).length + 1 // + registrul
+    const activeTipuri = JURNALE.filter((x) => x.activ).length + PV_CONSTRUCTII.filter((x) => x.activ).length + PV_INSTALATII.filter((x) => x.activ).length + 1 // + registrul
     const nrDocs = zile.length + docs.length
 
     const obiecteHtml = obiecte.map((o) => {
       const aleObiectului = docs.filter((d) => d.obiect_id === o.id)
-      const pvLa = aleObiectului.filter((d) => d.tip === 'pv_lucrari_ascunse')
+      const dinTip = (tip) => aleObiectului.filter((d) => d.tip === tip)
       return `<div class="obiect">
         ${obiecte.length > 1 || l.tip === 'cu_obiecte' ? `<h3>OB. ${esc(o.cod)} — ${esc(o.nume)}</h3>` : ''}
         <section class="grup"><h2>Registrul obiectului</h2><div class="lista">
           ${rand({ cod: 'REG', nume: 'Registrul procese verbale', desc: 'ordinea documentelor din dosar' }, { activ: true, numar: aleObiectului.filter((d) => d.pozitie != null).length, corp: corpRegistru(aleObiectului) })}
         </div></section>
         <section class="grup"><h2>PV construcții <small>${PV_CONSTRUCTII.length}</small></h2><div class="lista">
-          ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: pvLa.length, corp: corpPv(pvLa, t.activ) }) : rand(t)).join('')}
+          ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) }) : rand(t)).join('')}
         </div></section>
-        <section class="grup">${grupInLucru('PV instalații', PV_INSTALATII)}</section>
+        <section class="grup"><h2>PV instalații <small>${PV_INSTALATII.length}</small></h2><div class="lista">
+          ${PV_INSTALATII.filter((t) => t.activ).map((t) => rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) })).join('')}
+        </div></section>
+        <section class="grup">${grupInLucru('Celelalte PV de instalații', PV_INSTALATII.filter((t) => !t.activ))}</section>
       </div>`
     }).join('')
 
@@ -716,6 +733,14 @@
         [z.neconformitati, z.influente_vreme, z.propuneri].filter((t) => t && !/^nu sunt$/i.test(t.trim())).map(esc).join('<br>')}</p>`
   }
 
+  // Conținutul unui PV, pe tip: ce e esențial de văzut pe șantier.
+  const REZUMAT_PV = {
+    pv_lucrari_ascunse: [['faza_lucrare', 'Faza verificată'], ['elemente_identificare', 'Elemente de identificare'], ['concluzii', 'Concluzii']],
+    pv_proba_presiune_rece: [['denumire_instalatie', 'Instalația'], ['valoare_presiune', 'Presiune de probă (bar)'], ['timp_mentinere', 'Timp de menținere (ore)'], ['concluzii', 'Concluzii']],
+    pv_etanseitate_canalizare_interioara: [['denumire_instalatie', 'Instalația'], ['umplere_apa', 'Umplerea cu apă'], ['concluzii', 'Concluzii']],
+    pv_prize_pamant: [['loc_incercare', 'Locul'], ['rezistenta_dispersie', 'Rezistența de dispersie (Ω)'], ['umiditate_sol', 'Umiditatea solului'], ['concluzii', 'Concluzii']],
+  }
+
   function rezumatPv(d) {
     const c = d.date ?? {}
     return `
@@ -723,9 +748,7 @@
         <div><dt>Categorie</dt><dd>${esc(d.categorie || '—')}</dd></div>
         <div><dt>Poziție în registru</dt><dd>${d.pozitie ?? '—'}</dd></div>
       </dl>
-      <h3>Faza verificată</h3><p>${esc(c.faza_lucrare || '—')}</p>
-      <h3>Elemente de identificare</h3><p>${esc(c.elemente_identificare || '—')}</p>
-      <h3>Concluzii</h3><p>${esc(c.concluzii || '—')}</p>`
+      ${(REZUMAT_PV[d.tip] ?? [['concluzii', 'Concluzii']]).map(([k, et]) => `<h3>${et}</h3><p>${esc(c[k] || '—')}</p>`).join('')}`
   }
 
   // ---------- Varianta semnată: încărcare poze / PDF ----------
@@ -823,7 +846,7 @@
     const eJurnal = dec.fel === 'j'
     const titlu = eJurnal
       ? `Jurnal de șantier nr. ${d.nr}`
-      : `PV lucrări ascunse${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`
+      : `${TITLURI_PV[d.tip] ?? 'Proces verbal'}${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`
     const data = dataRo(eJurnal ? d.data : d.data_doc)
 
     $('pagina').innerHTML = `
