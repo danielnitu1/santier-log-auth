@@ -71,8 +71,34 @@
   .antet dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 4px 20px; margin: 0; font-size: 14px; }
   .antet dt { color: var(--muted); font-size: 12px; }
   .antet dd { margin: 0 0 6px; }
-  .sigle { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 12px 14px; }
-  .sigle-cap small { display: block; color: var(--muted); font-size: 13px; }
+  /* Titlul lucrării și butonul Setări. */
+  .titlu-rand { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .titlu-rand h1 { min-width: 0; }
+  .setari-btn { flex: 0 0 auto; min-height: 36px; padding: 6px 12px; font-size: 14px; margin-top: 2px; }
+
+  /* Fereastra Setări lucrare: centrată pe calculator, pe tot ecranul pe telefon. */
+  dialog#setari {
+    width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; overflow: auto;
+    border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink);
+  }
+  dialog#setari::backdrop { background: rgba(0, 0, 0, .45); }
+  .setari-cap {
+    position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .setari-cap h2 { margin: 0; font-size: 17px; }
+  .inchide { background: none; border: 0; font-size: 18px; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; color: var(--muted); }
+  .inchide:hover { background: var(--hover); }
+  .setari-sectiune { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .setari-sectiune h3 { margin: 0 0 4px; font-size: 15px; }
+  .ajutor { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  .setari-nota { padding: 12px 18px 18px; margin: 0; }
+  #form-detalii label { font-size: 14px; }
+  #form-detalii .btn { margin-top: 2px; }
+  .sigle h3 { margin: 0 0 4px; font-size: 15px; }
+  @media (max-width: 760px) {
+    dialog#setari { width: 100vw; max-width: 100vw; height: 100%; max-height: 100%; margin: 0; border-radius: 0; border: 0; }
+  }
   .sigle-locuri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
   .sigla-loc { display: grid; gap: 6px; min-width: 0; }
   .sigla-cutie { height: 64px; border: 1px dashed var(--line); border-radius: 8px; display: grid; place-items: center; background: var(--bg); overflow: hidden; font-size: 12px; }
@@ -249,6 +275,29 @@
   </div>
 </div>
 
+<dialog id="setari" aria-labelledby="setari-titlu">
+  <div class="setari-cap">
+    <h2 id="setari-titlu">Setări lucrare</h2>
+    <button class="inchide" type="button" id="setari-inchide" aria-label="Închide">✕</button>
+  </div>
+  <form id="form-detalii" class="setari-sectiune">
+    <h3>Detalii</h3>
+    <p class="ajutor">Apar în antetul fiecărui document nou, exact cum le scrii aici.</p>
+    <label for="d-nume">Denumirea lucrării</label>
+    <input id="d-nume" name="nume" required>
+    <label for="d-antreprenor">Antreprenor</label>
+    <input id="d-antreprenor" name="antreprenor">
+    <label for="d-beneficiar">Beneficiar</label>
+    <input id="d-beneficiar" name="beneficiar">
+    <label for="d-santier">Șantier / obiectiv</label>
+    <input id="d-santier" name="santier_obiectiv">
+    <button class="btn" type="submit">Salvează detaliile</button>
+    <p class="stare-incarcare" id="stare-detalii" role="status"></p>
+  </form>
+  <div class="setari-sectiune" id="setari-sigle"></div>
+  <p class="ajutor setari-nota">Documentele deja emise rămân cum erau. Ca să preia modificările, le re-emiți din Claude.</p>
+</dialog>
+
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/+esm'
 
@@ -381,7 +430,6 @@
       supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('lucrare_id', id),
     ])
     deseneazaLucrarea(selectata, zile ?? [], docs ?? [])
-    arataSigle()
   }
 
   // ---------- Randare ----------
@@ -466,7 +514,8 @@
   function sectiuneSigle(l) {
     const sigle = Array.isArray(l.sigle) ? l.sigle : [null, null, null]
     return `<div class="sigle" data-lucrare="${esc(l.id)}">
-      <div class="sigle-cap"><strong>Sigle pe documente</strong><small>Apar sus pe fiecare document nou: beneficiar, constructor, dirigenție.</small></div>
+      <h3>Sigle pe documente</h3>
+      <p class="ajutor">Apar sus pe fiecare document nou. De obicei: beneficiar, constructor, dirigenție. Pune doar ce ai nevoie.</p>
       <div class="sigle-locuri">${LOCURI_SIGLE.map((loc, i) => `
         <div class="sigla-loc">
           <div class="sigla-cutie" data-cale="${esc(sigle[i] || '')}">${sigle[i] ? '<span class="semnat-gol">…</span>' : '<span class="semnat-gol">fără siglă</span>'}</div>
@@ -484,7 +533,7 @@
 
   // Previzualizările siglelor se încarcă după randare, prin linkuri semnate de scurtă durată.
   async function arataSigle() {
-    for (const cutie of document.querySelectorAll('.sigla-cutie[data-cale]')) {
+    for (const cutie of $('setari').querySelectorAll('.sigla-cutie[data-cale]')) {
       const cale = cutie.dataset.cale
       if (!cale) continue
       const { data } = await supabase.storage.from('documente').createSignedUrl(cale, 600)
@@ -511,7 +560,60 @@
     l.sigle = sigle
   }
 
-  $('pagina').addEventListener('change', async (ev) => {
+  // ---------- Fereastra Setări lucrare ----------
+  function deseneazaSigleSetari() {
+    $('setari-sigle').innerHTML = sectiuneSigle(selectata)
+    arataSigle()
+  }
+
+  function deschideSetari() {
+    const l = selectata
+    if (!l) return
+    $('d-nume').value = l.nume || ''
+    $('d-antreprenor').value = l.antreprenor || ''
+    $('d-beneficiar').value = l.beneficiar || ''
+    $('d-santier').value = l.santier_obiectiv || ''
+    $('stare-detalii').textContent = ''
+    deseneazaSigleSetari()
+    $('setari').showModal()
+  }
+
+  $('setari-inchide').addEventListener('click', () => $('setari').close())
+  $('setari').addEventListener('click', (ev) => { if (ev.target === $('setari')) $('setari').close() }) // clic pe fundal
+  $('setari').addEventListener('close', () => { if (selectata) alege(selectata.id) })
+
+  $('form-detalii').addEventListener('submit', async (ev) => {
+    ev.preventDefault()
+    const b = ev.submitter; b.disabled = true
+    const stareEl = $('stare-detalii'); stareEl.classList.remove('eroare'); stareEl.textContent = 'Se salvează…'
+    const detalii = {
+      nume: $('d-nume').value.trim(),
+      antreprenor: $('d-antreprenor').value.trim() || null,
+      beneficiar: $('d-beneficiar').value.trim() || null,
+      santier_obiectiv: $('d-santier').value.trim() || null,
+    }
+    const { error } = await supabase.from('lucrari').update(detalii).eq('id', selectata.id)
+    b.disabled = false
+    if (error) {
+      stareEl.textContent = /row-level|permission/i.test(error.message) ? 'Contul tău poate doar vedea lucrarea.' : error.message
+      stareEl.classList.add('eroare')
+      return
+    }
+    Object.assign(selectata, detalii)
+    deseneazaLucrari()
+    stareEl.textContent = 'Salvat.'
+  })
+
+  $('setari').addEventListener('click', async (ev) => {
+    const scoate = ev.target.closest('.sigla-scoate')
+    if (!scoate) return
+    scoate.disabled = true
+    try { await salveazaSigle(Number(scoate.dataset.loc), null); deseneazaSigleSetari() } catch (e) {
+      $('stare-sigle').textContent = e.message; $('stare-sigle').classList.add('eroare'); scoate.disabled = false
+    }
+  })
+
+  $('setari').addEventListener('change', async (ev) => {
     if (!ev.target.classList?.contains('sigla-input') || !ev.target.files[0]) return
     const loc = Number(ev.target.dataset.loc)
     const stareEl = $('stare-sigle')
@@ -523,7 +625,7 @@
       const { error } = await supabase.storage.from('documente').upload(cale, png, { contentType: 'image/png' })
       if (error) throw error
       await salveazaSigle(loc, cale)
-      alege(selectata.id)
+      deseneazaSigleSetari()
     } catch (e) {
       stareEl.textContent = 'Sigla nu s-a salvat: ' + (e.message || e)
       stareEl.classList.add('eroare')
@@ -557,14 +659,13 @@
 
     $('pagina').innerHTML = `
       <div class="antet">
-        <h1>${esc(l.nume)}</h1>
+        <div class="titlu-rand"><h1>${esc(l.nume)}</h1><button class="descarca setari-btn" type="button" id="deschide-setari">⚙ Setări</button></div>
         <dl>
           <div><dt>Antreprenor</dt><dd>${esc(l.antreprenor || '—')}</dd></div>
           <div><dt>Beneficiar</dt><dd>${esc(l.beneficiar || '—')}</dd></div>
           <div><dt>Șantier / obiectiv</dt><dd>${esc(l.santier_obiectiv || '—')}</dd></div>
         </dl>
         ${persoane.length ? `<div class="persoane">${persoane.map((p) => `<span>${esc(ROLURI[p.rol] ?? p.rol)}: ${esc(p.nume)}</span>`).join('')}</div>` : ''}
-        ${sectiuneSigle(l)}
       </div>
 
       <div class="progres">
@@ -758,14 +859,7 @@
       cap.nextElementSibling.hidden = deschis
       return
     }
-    const scoate = ev.target.closest('.sigla-scoate')
-    if (scoate) {
-      scoate.disabled = true
-      try { await salveazaSigle(Number(scoate.dataset.loc), null); alege(selectata.id) } catch (e) {
-        $('stare-sigle').textContent = e.message; $('stare-sigle').classList.add('eroare'); scoate.disabled = false
-      }
-      return
-    }
+    if (ev.target.closest('#deschide-setari')) return deschideSetari()
     const b = ev.target.closest('button.descarca[data-cale]')
     if (b) {
       b.disabled = true
