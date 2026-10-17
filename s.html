@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Document · santier-log</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --text: #1d1d1b; --muted: #6b6a66;
+    --border: #e2e0da; --accent: #c2410c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161614; --card: #22221f; --text: #f1f0ec; --muted: #a3a29c; --border: #3a3935; --accent: #f97316; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+    background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px 24px; }
+  .brand { font-weight: 700; color: var(--accent); margin: 0 0 4px; }
+  h1 { font-size: 1.35rem; margin: 0 0 12px; }
+  p { margin: 0 0 12px; color: var(--muted); }
+  code { font: 0.85rem ui-monospace, Consolas, monospace; word-break: break-all; color: var(--text); }
+</style>
+</head>
+<body>
+<main>
+  <p class="brand">santier-log</p>
+  <h1 id="titlu">Document santier-log</h1>
+  <p id="text">Codul QR de pe document duce aici.</p>
+  <p>Încărcarea variantei semnate direct de aici vine în curând. Până atunci, păstrează originalul semnat în dosarul lucrării.</p>
+  <p>Cod document: <code id="cod">—</code></p>
+</main>
+<script>
+  // d = „j.” (zi de jurnal) sau „p.” (proces verbal) + UUID-ul documentului în base64url.
+  const d = new URLSearchParams(location.search).get('d') || ''
+  const m = d.match(/^([jp])\.([A-Za-z0-9_-]{22})$/)
+  if (m) {
+    const bin = atob(m[2].replace(/-/g, '+').replace(/_/g, '/') + '==')
+    const hex = [...bin].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+    const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+    document.getElementById('titlu').textContent = m[1] === 'j' ? 'Zi din jurnalul de șantier' : 'Proces verbal'
+    document.getElementById('cod').textContent = uuid
+  } else {
+    document.getElementById('text').textContent = 'Codul din adresă nu e unul valid. Scanează din nou codul QR de pe document.'
+  }
+</script>
+</body>
+</html>
