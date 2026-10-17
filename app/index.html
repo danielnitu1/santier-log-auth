@@ -111,6 +111,8 @@
   .stare.semnat { background: var(--accent-soft); color: var(--accent); }
   .stare.anulat { background: var(--wip-soft); color: var(--wip); text-decoration: line-through; }
   .semnat-gol { color: var(--faint); }
+  a.eticheta, a.descarca.leg { text-decoration: none; display: inline-block; }
+  a.descarca.leg { color: var(--accent); border-color: var(--accent); }
   .descarca { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; white-space: nowrap; }
   .descarca:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -134,7 +136,19 @@
   .fise dt { color: var(--muted); font-size: 12px; }
   .fise dd { margin: 0; }
   .pasi { margin: 0 0 12px; padding-left: 1.3em; display: grid; gap: 4px; }
-  .incarca { width: 100%; min-height: 48px; border-radius: 10px; border: 1px dashed var(--line); background: var(--bg); color: var(--muted); font-weight: 600; }
+  .incarca {
+    display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; margin: 0; cursor: pointer;
+    border-radius: 10px; border: 1.5px dashed var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600;
+  }
+  .incarca:hover { filter: brightness(0.97); }
+  .incarca.ocupat { opacity: .6; pointer-events: none; }
+  #fisiere-semnat:focus-visible + .stare-incarcare, .incarca:focus-within { outline: 2px solid var(--accent); }
+  .stare-incarcare { margin: 8px 0 0; color: var(--muted); font-size: 14px; min-height: 1.2em; }
+  .stare-incarcare.eroare { color: var(--accent); }
+  .doc-card ul.fisiere { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+  .fisiere li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .fisier-nume { min-width: 0; overflow-wrap: anywhere; }
+  .fisier-nume small { display: block; color: var(--muted); font-size: 12px; }
   .doc-card .descarca { min-height: 44px; padding: 8px 18px; font-size: 15px; }
 
   /* Grupuri „în lucru”, strânse implicit. */
@@ -353,8 +367,8 @@
     history.replaceState(null, '', '#' + id)
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentele…</p>'
     const [{ data: zile }, { data: docs }] = await Promise.all([
-      supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx').eq('lucrare_id', id).order('data', { ascending: false }),
-      supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx').eq('lucrare_id', id),
+      supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx, fisiere_semnate').eq('lucrare_id', id).order('data', { ascending: false }),
+      supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('lucrare_id', id),
     ])
     deseneazaLucrarea(selectata, zile ?? [], docs ?? [])
   }
@@ -363,11 +377,22 @@
   const eticheta = (activ) => activ ? '<span class="eticheta ok">Disponibil</span>' : '<span class="eticheta wip">În lucru</span>'
   const stare = (s) => `<span class="stare ${s}">${STARI[s] ?? s}</span>`
   const descarca = (cale) => cale ? `<button class="descarca" data-cale="${esc(cale)}">Word ↓</button>` : ''
-  // Varianta semnată: tipărit, semnat, scanat prin QR-ul din subsol. Încărcarea e în lucru (vezi punctele deschise).
-  const semnat = (d) => d.stare === 'ciorna' || d.stare === 'anulat'
-    ? '<span class="semnat-gol">—</span>'
-    : '<span class="eticheta wip" title="Tipărești, semnezi, scanezi codul QR din subsol și încarci poza. Urmează.">Scan · în lucru</span>'
-  const SFAT_SEMNAT = '<p class="sfat">Varianta semnată: tipărești documentul, îl semnezi, scanezi codul QR din subsol și încarci poza. Încărcarea urmează.</p>'
+  // Codul din QR, ca linkurile din tabel să ducă la aceeași pagină a documentului (vezi functions/mcp/tools/qr.ts).
+  function codPentru(fel, uuid) {
+    const hex = uuid.replace(/-/g, '')
+    const bin = String.fromCharCode(...hex.match(/../g).map((h) => parseInt(h, 16)))
+    return `${fel}.${btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`
+  }
+  // Varianta semnată: link spre pagina documentului, unde se vede sau se încarcă scanul.
+  const semnat = (fel) => (d) => {
+    if (d.stare === 'ciorna' || d.stare === 'anulat') return '<span class="semnat-gol">—</span>'
+    const n = (d.fisiere_semnate ?? []).length
+    const href = `?d=${codPentru(fel, d.id)}`
+    return n
+      ? `<a class="eticheta ok" href="${href}">Semnat · ${n} ${n === 1 ? 'fișier' : 'fișiere'}</a>`
+      : `<a class="descarca leg" href="${href}">Încarcă scan</a>`
+  }
+  const SFAT_SEMNAT = '<p class="sfat">Varianta semnată: tipărești documentul, îl semnezi, scanezi codul QR de pe el (sau apeși „Încarcă scan”) și încarci pozele.</p>'
 
   function rand({ cod, nume, desc }, { activ = false, numar, corp } = {}) {
     const deschis = activ && corp != null
@@ -390,12 +415,11 @@
   }
   const colStare = ['Stare', (d) => stare(d.stare)]
   const colGenerat = ['Generat', (d) => descarca(d.fisier_docx) || '<span class="semnat-gol">—</span>']
-  const colSemnat = ['Semnat', semnat]
 
   function corpJurnal(zile) {
     const t = zile.length ? tabel([
       ['Nr.', (z) => z.nr, 'titlu-card'], ['Data', (z) => dataRo(z.data), 'titlu-card'], colStare,
-      ['Versiune', (z) => z.versiune || '—'], colGenerat, colSemnat,
+      ['Versiune', (z) => z.versiune || '—'], colGenerat, ['Semnat', semnat('j')],
     ], zile) : '<p class="gol">Nicio zi încă.</p>'
     return t + `<p class="sfat">${SFATURI.jurnal}</p>` + SFAT_SEMNAT
   }
@@ -403,7 +427,7 @@
   function corpPv(lista, tip) {
     const t = lista.length ? tabel([
       ['Nr. PV', (d) => d.nr_pv ?? '—', 'titlu-card'], ['Data', (d) => dataRo(d.data_doc), 'titlu-card'],
-      ['Descriere', (d) => esc(d.descriere || ''), 'lat'], colStare, colGenerat, colSemnat,
+      ['Descriere', (d) => esc(d.descriere || ''), 'lat'], colStare, colGenerat, ['Semnat', semnat('p')],
     ], lista) : '<p class="gol">Niciun PV încă.</p>'
     return t + `<p class="sfat">${SFATURI[tip] ?? ''}</p>` + SFAT_SEMNAT
   }
@@ -414,7 +438,7 @@
       ['Nr. crt.', (d) => d.pozitie, 'titlu-card'], ['Nr. PV', (d) => d.nr_pv, 'titlu-card'], ['Data', (d) => dataRo(d.data_doc)],
       ['Document', (d) => esc(d.tip === 'pv_lucrari_ascunse' ? 'PV lucrări ascunse' : d.tip)],
       ['Categorie', (d) => esc(d.categorie || '')], ['Descriere', (d) => esc(d.descriere || ''), 'lat'],
-      colStare, colGenerat, colSemnat,
+      colStare, colGenerat, ['Semnat', semnat('p')],
     ], reg) : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
     return t + '<p class="sfat">Excelul registrului îl ceri din Claude: <q>Dă-mi registrul obiectului în Excel.</q></p>'
   }
@@ -521,6 +545,80 @@
       <h3>Concluzii</h3><p>${esc(c.concluzii || '—')}</p>`
   }
 
+  // ---------- Varianta semnată: încărcare poze / PDF ----------
+  const marime = (o) => o >= 1048576 ? `${(o / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(o / 1024))} KB`
+  const dataOraRo = (iso) => iso ? new Date(iso).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : ''
+  let docCurent = null // { cod, fel, id, firma_id }
+
+  function sectiuneSemnat(d) {
+    const fisiere = d.fisiere_semnate ?? []
+    const poate = d.stare === 'emis' || d.stare === 'semnat'
+    return `<section class="doc-card">
+      <h2>Varianta semnată ${d.stare === 'semnat' ? '<span class="eticheta ok">Semnat</span>' : ''}</h2>
+      ${fisiere.length ? `<ul class="fisiere">${fisiere.map((f) => `<li>
+          <span class="fisier-nume">${esc(f.nume)}<small>${dataOraRo(f.incarcat_la)} · ${marime(f.marime || 0)}</small></span>
+          <button class="descarca" data-cale="${esc(f.cale)}">Descarcă</button></li>`).join('')}</ul>` : ''}
+      ${poate ? `${fisiere.length ? '' : `<ol class="pasi">
+          <li>Tipărești documentul.</li>
+          <li>Îl semnează cei din tabelul de semnături.</li>
+          <li>Faci poze la toate paginile sau un PDF scanat.</li>
+          <li>Le încarci aici. Documentul devine „semnat”.</li>
+        </ol>`}
+        <label class="incarca" for="fisiere-semnat">${fisiere.length ? '+ Adaugă pagini' : 'Încarcă poze sau PDF'}</label>
+        <input id="fisiere-semnat" type="file" accept="image/*,application/pdf" multiple hidden>
+        <p class="stare-incarcare" id="stare-incarcare" role="status"></p>`
+      : '<p class="gol">Documentul e încă ciornă. Emite-l din Claude, tipărește-l, apoi încarcă aici varianta semnată.</p>'}
+    </section>`
+  }
+
+  // Pozele de telefon (3–8 MB) se micșorează la cel mult 2400 px, JPEG: se citesc bine și ocupă puțin.
+  async function pregatesteFisier(f) {
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 1.5 * 1048576) return { blob: f, tip: f.type, nume: f.name }
+    try {
+      const img = await createImageBitmap(f)
+      const k = Math.min(1, 2400 / Math.max(img.width, img.height))
+      const c = document.createElement('canvas')
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k)
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+      const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.85))
+      return { blob, tip: 'image/jpeg', nume: f.name.replace(/\.[^.]+$/, '') + '.jpg' }
+    } catch {
+      return { blob: f, tip: f.type, nume: f.name }
+    }
+  }
+
+  async function incarcaSemnat(fisiere) {
+    if (!docCurent || !fisiere.length) return
+    const stareEl = $('stare-incarcare')
+    const buton = document.querySelector('label.incarca')
+    buton.classList.add('ocupat')
+    const incarcate = []
+    try {
+      for (let i = 0; i < fisiere.length; i++) {
+        stareEl.textContent = `Se încarcă ${i + 1} din ${fisiere.length}…`
+        const { blob, tip, nume } = await pregatesteFisier(fisiere[i])
+        const sigur = nume.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '-').slice(-60)
+        const cale = `firme/${docCurent.firma_id}/semnat/${docCurent.fel}/${docCurent.id}/${Date.now()}-${i + 1}-${sigur}`
+        const { error } = await supabase.storage.from('documente').upload(cale, blob, { contentType: tip })
+        if (error) throw new Error(/mime|type/i.test(error.message) ? `„${nume}” nu e poză sau PDF.` : /size|large/i.test(error.message) ? `„${nume}” are peste 25 MB.` : error.message)
+        incarcate.push({ cale, nume, tip, marime: blob.size })
+      }
+      stareEl.textContent = 'Se salvează…'
+      const { error } = await supabase.rpc('document_adauga_semnat', { p_fel: docCurent.fel, p_id: docCurent.id, p_fisiere: incarcate })
+      if (error) throw error
+      await deseneazaDocument(docCurent.cod)
+      $('stare-incarcare').textContent = `Gata: ${incarcate.length} ${incarcate.length === 1 ? 'fișier încărcat' : 'fișiere încărcate'}.`
+    } catch (e) {
+      buton.classList.remove('ocupat')
+      stareEl.textContent = 'Nu s-a încărcat: ' + (e.message || e) + (incarcate.length ? ' Încearcă din nou.' : '')
+      stareEl.classList.add('eroare')
+    }
+  }
+
+  $('pagina').addEventListener('change', (ev) => {
+    if (ev.target.id === 'fisiere-semnat') incarcaSemnat([...ev.target.files])
+  })
+
   async function deseneazaDocument(cod) {
     $('ecran-app').querySelector('.app').classList.add('doc-vedere')
     const dec = decodeaza(cod)
@@ -538,6 +636,7 @@
       return
     }
     const l = d.lucrari ?? {}
+    docCurent = { cod, fel: dec.fel, id: d.id, firma_id: d.firma_id }
     const eJurnal = dec.fel === 'j'
     const titlu = eJurnal
       ? `Jurnal de șantier nr. ${d.nr}`
@@ -561,16 +660,7 @@
         ${d.fisier_docx ? `<p>${descarca(d.fisier_docx)}</p>` : '<p class="gol">E încă ciornă. Se generează la emitere, din Claude.</p>'}
       </section>
 
-      <section class="doc-card">
-        <h2>Varianta semnată ${eticheta(false)}</h2>
-        <ol class="pasi">
-          <li>Tipărești documentul.</li>
-          <li>Îl semnează cei din tabelul de semnături.</li>
-          <li>Faci poze la toate paginile sau un PDF scanat.</li>
-          <li>Le încarci aici. Documentul devine „semnat”.</li>
-        </ol>
-        <button class="incarca" type="button" disabled>Încarcă poze sau PDF · în lucru</button>
-      </section>
+      ${sectiuneSemnat(d)}
 
       <section class="doc-card">
         <h2>Pe scurt</h2>
