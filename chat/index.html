@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="robots" content="noindex">
+<title>Chat · santier-log</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconite/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="iconite/apple-touch-icon.png">
+<meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161614" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="santier-log">
+<style>
+  /* Layout: un ecran pe rând (login → lucrări → chat), ca o aplicație de telefon.
+     Culorile și fontul sunt cele din pagina Cartea Tehnică, ca produsul să arate la fel. */
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #1f1e1b; --muted: #6b6a66; --faint: #9a988f;
+    --line: #e4e2dc; --hover: #f0eee9; --accent: #c2410c; --accent-soft: #fdebe1;
+    --bula-om: #c2410c; --bula-om-ink: #ffffff;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161614; --panel: #1f1f1c; --ink: #f1f0ec; --muted: #a3a29c; --faint: #75746e;
+      --line: #34332f; --hover: #282824; --accent: #f97316; --accent-soft: #3a2519;
+      --bula-om: #9a3412; --bula-om-ink: #fff7ed;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #161614; --panel: #1f1f1c; --ink: #f1f0ec; --muted: #a3a29c; --faint: #75746e;
+    --line: #34332f; --hover: #282824; --accent: #f97316; --accent-soft: #3a2519;
+    --bula-om: #9a3412; --bula-om-ink: #fff7ed;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font); -webkit-text-size-adjust: 100%; }
+  button, textarea, input { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+  /* Login */
+  .login { min-height: 100%; display: grid; place-items: center; padding-block: 24px; }
+  .card { width: 100%; max-width: 400px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px 24px; }
+  .brand { font-weight: 700; color: var(--accent); }
+  .card h1 { font-size: 1.3rem; margin: 6px 0 8px; text-wrap: balance; }
+  .card p { color: var(--muted); margin: 0 0 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input { width: 100%; padding: 11px 12px; font-size: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px; }
+  .btn { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  .link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; margin-top: 12px; }
+  .eroare { color: var(--accent); margin: 12px 0 0; }
+
+  /* Ecranele aplicației: bară sus, conținut, (la chat) caseta de scris jos. */
+  .ecran { height: 100%; display: flex; flex-direction: column; }
+  .bara {
+    flex: none; display: flex; align-items: center; gap: 10px; min-height: 52px;
+    padding-top: env(safe-area-inset-top, 0px); background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .bara h1 { font-size: 17px; margin: 0; min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bara .mic { font-size: 13px; color: var(--muted); }
+  .icon-btn { flex: none; display: inline-grid; place-items: center; min-width: 40px; height: 40px; border: 0; background: none; border-radius: 10px; cursor: pointer; color: var(--ink); }
+  .icon-btn:hover { background: var(--hover); }
+  .icon-btn svg { width: 22px; height: 22px; }
+  .text-btn { flex: none; border: 1px solid var(--line); background: none; border-radius: 8px; padding: 5px 10px; font-size: 14px; cursor: pointer; color: var(--muted); }
+
+  /* Lista de lucrări */
+  .lista { flex: 1; overflow-y: auto; padding-block: 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .lista-in { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+  .sectiune-titlu { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 600; margin: 4px 2px; }
+  .carduri { display: flex; flex-direction: column; gap: 8px; }
+  .lucrare { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; }
+  .lucrare:hover { border-color: var(--faint); }
+  .lucrare div { min-width: 0; flex: 1; }
+  .lucrare strong { display: block; font-weight: 600; }
+  .lucrare span { display: block; color: var(--muted); font-size: 14px; }
+  .lucrare svg { flex: none; width: 18px; height: 18px; color: var(--faint); }
+  .limita { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+  .limita .bara-progres { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .limita .bara-progres i { display: block; height: 100%; background: var(--accent); }
+  .gol { color: var(--muted); padding: 20px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
+
+  /* Chat */
+  .fir { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding-block: 16px; }
+  .fir-in { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .mesaj { max-width: 88%; overflow-wrap: anywhere; }
+  .mesaj.om { align-self: flex-end; background: var(--bula-om); color: var(--bula-om-ink); padding: 9px 13px; border-radius: 16px 16px 4px 16px; white-space: pre-wrap; }
+  .mesaj.claude { align-self: flex-start; max-width: 100%; }
+  .mesaj.claude > :first-child { margin-top: 0; } .mesaj.claude > :last-child { margin-bottom: 0; }
+  .mesaj.claude p, .mesaj.claude ul, .mesaj.claude ol { margin: 0 0 8px; }
+  .mesaj.claude ul, .mesaj.claude ol { padding-left: 1.3em; }
+  .mesaj.claude li { margin: 2px 0; }
+  .mesaj.claude a { color: var(--accent); font-weight: 600; }
+  .mesaj.claude code { font: 14px var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
+  .mesaj.claude h3 { font-size: 16px; margin: 10px 0 4px; }
+  .unelte { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; }
+  .unealta { font-size: 13px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+  .lucreaza { align-self: flex-start; color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .lucreaza i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: puls 1s ease-in-out infinite; }
+  @keyframes puls { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .lucreaza i { animation: none; } }
+  .eroare-chat { align-self: stretch; color: var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+  .bun-venit { color: var(--muted); text-align: center; padding: 24px 8px; display: flex; flex-direction: column; gap: 10px; }
+  .bun-venit strong { color: var(--ink); }
+  .exemple { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .exemplu { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 8px 12px; cursor: pointer; text-align: left; max-width: 100%; }
+  .exemplu:hover { border-color: var(--faint); }
+
+  .scrie { flex: none; background: var(--panel); border-top: 1px solid var(--line); padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .scrie form { max-width: 720px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; }
+  .scrie textarea { flex: 1; min-width: 0; resize: none; max-height: 40vh; padding: 10px 12px; font-size: 16px; line-height: 1.4; background: var(--bg); border: 1px solid var(--line); border-radius: 20px; }
+  .trimite { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; display: grid; place-items: center; cursor: pointer; }
+  .trimite:disabled { opacity: .45; cursor: default; }
+  .trimite svg { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+
+<div class="login gutter" id="ecran-login" hidden>
+  <div class="card">
+    <div class="brand">santier-log</div>
+    <section id="pas-email">
+      <h1>Intră în cont</h1>
+      <p>Îți trimitem pe email un cod de 6 cifre.</p>
+      <form id="form-email">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" inputmode="email" required>
+        <button class="btn" type="submit">Trimite codul</button>
+      </form>
+    </section>
+    <section id="pas-cod" hidden>
+      <h1>Verifică emailul</h1>
+      <p>Am trimis codul la <strong id="email-afisat"></strong>.</p>
+      <form id="form-cod">
+        <label for="cod">Codul din email</label>
+        <input id="cod" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" required>
+        <button class="btn" type="submit">Intră</button>
+      </form>
+      <button class="link" id="alt-email" type="button">Folosește alt email</button>
+    </section>
+    <p class="eroare" id="eroare-login" role="alert" hidden></p>
+  </div>
+</div>
+
+<div class="ecran" id="ecran-lucrari" hidden>
+  <header class="bara gutter">
+    <h1>Lucrările mele</h1>
+    <button class="text-btn" id="iesire" type="button">Ieși</button>
+  </header>
+  <div class="lista gutter">
+    <div class="lista-in">
+      <div class="sectiune-titlu" id="firma">Se încarcă…</div>
+      <div id="lucrari" class="carduri"></div>
+      <div class="limita" id="limita" hidden></div>
+    </div>
+  </div>
+</div>
+
+<div class="ecran" id="ecran-chat" hidden>
+  <header class="bara gutter">
+    <button class="icon-btn" id="inapoi" type="button" aria-label="Înapoi la lucrări">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <h1 id="titlu-chat">—</h1>
+  </header>
+  <div class="fir gutter" id="fir" aria-live="polite">
+    <div class="fir-in" id="mesaje"></div>
+  </div>
+  <div class="scrie gutter">
+    <form id="form-mesaj">
+      <textarea id="text" rows="1" placeholder="Scrie ce s-a lucrat azi…" enterkeyhint="send" aria-label="Mesaj"></textarea>
+      <button class="trimite" id="trimite" type="submit" aria-label="Trimite" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/+esm'
+
+  const URL_SUPABASE = 'https://iynnqvrprudvwgnhynku.supabase.co'
+  const CHEIE_PUBLICA = 'sb_publishable_2LlyrWtb3Qrafj6phg_4Gw_vyw7vyU4'
+  const supabase = createClient(URL_SUPABASE, CHEIE_PUBLICA)
+  const $ = (id) => document.getElementById(id)
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  const memorie = {
+    get: (k) => { try { return localStorage.getItem(k) } catch { return null } },
+    set: (k, v) => { try { localStorage.setItem(k, v) } catch { /* fără memorie locală, merge oricum */ } },
+  }
+
+  // Ce face Claude în timp ce cheamă o unealtă, spus pe înțelesul omului.
+  const UNELTE = {
+    lucrari_lista: 'caut lucrările', lucrare_creeaza: 'creez lucrarea', lucrare_modifica: 'modific lucrarea',
+    obiect_adauga: 'adaug obiectul', obiect_modifica: 'modific obiectul', persoane_seteaza: 'salvez responsabilii',
+    jurnal_zi_citeste: 'citesc jurnalul', jurnal_zi_salveaza: 'salvez ciorna jurnalului', jurnal_zi_emite: 'emit ziua de jurnal',
+    jurnal_export: 'pregătesc fișierul jurnalului', pv_citeste: 'citesc registrul PV', pv_salveaza: 'salvez ciorna PV-ului',
+    pv_emite: 'emit PV-ul', registru_export: 'pregătesc registrul Excel',
+  }
+  const textUnealta = (n) => UNELTE[n] ?? 'lucrez'
+  const EXEMPLE = [
+    'Ce s-a lucrat ieri?',
+    'Azi: 4 dulgheri, cofrare stâlpi axa B, 12 mp. Mâine turnăm.',
+    'Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6.',
+  ]
+
+  let lucrari = []
+  let curenta = null
+  let ocupat = false
+
+  // ---------- Ecrane ----------
+  function arata(ecran) {
+    for (const id of ['ecran-login', 'ecran-lucrari', 'ecran-chat']) $(id).hidden = id !== ecran
+  }
+
+  // ---------- Login (cod pe email, ca în Cartea Tehnică) ----------
+  let emailCurent = ''
+  const eroareLogin = (t) => { $('eroare-login').textContent = t || ''; $('eroare-login').hidden = !t }
+  $('form-email').addEventListener('submit', async (ev) => {
+    ev.preventDefault(); const b = ev.submitter; b.disabled = true; eroareLogin('')
+    emailCurent = $('email').value.trim()
+    const { error } = await supabase.auth.signInWithOtp({ email: emailCurent, options: { shouldCreateUser: false } })
+    b.disabled = false
+    if (error) return eroareLogin(error.status === 422 || /not allowed|signups/i.test(error.message)
+      ? 'Adresa asta nu are cont în santier-log.' : error.message)
+    $('email-afisat').textContent = emailCurent; $('pas-email').hidden = true; $('pas-cod').hidden = false; $('cod').focus()
+  })
+  $('form-cod').addEventListener('submit', async (ev) => {
+    ev.preventDefault(); const b = ev.submitter; b.disabled = true; eroareLogin('')
+    const { error } = await supabase.auth.verifyOtp({ email: emailCurent, token: $('cod').value.trim(), type: 'email' })
+    b.disabled = false
+    if (error) return eroareLogin('Codul nu e bun sau a expirat.')
+    porneste()
+  })
+  $('alt-email').addEventListener('click', () => { $('pas-cod').hidden = true; $('pas-email').hidden = false; eroareLogin('') })
+  $('iesire').addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
+
+  // ---------- Lucrările ----------
+  async function porneste() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return arata('ecran-login')
+    const [{ data: membri }, { data: lc, error }, { data: limita }] = await Promise.all([
+      supabase.from('membri').select('firme ( nume )').eq('user_id', user.id),
+      supabase.from('lucrari').select('id, nume, beneficiar').order('modificat_la', { ascending: false }),
+      supabase.from('limite_chat').select('limita_tokeni, tokeni_folositi').eq('user_id', user.id).maybeSingle(),
+    ])
+    $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || user.email
+    lucrari = lc ?? []
+    const sageata = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
+    $('lucrari').innerHTML = error ? `<p class="eroare">${esc(error.message)}</p>`
+      : lucrari.length ? lucrari.map((l) => `<button class="lucrare" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong>${l.beneficiar ? `<span>${esc(l.beneficiar)}</span>` : ''}</div>${sageata}</button>`).join('')
+      : '<div class="gol">Nu ai încă lucrări. Cere adminului firmei să te adauge.</div>'
+    arataLimita(limita)
+    const ultima = memorie.get('santier-log:lucrare')
+    if (ultima && lucrari.some((l) => l.id === ultima) && location.hash === '#chat') return deschide(ultima)
+    arata('ecran-lucrari')
+  }
+  function arataLimita(l) {
+    if (!l) { $('limita').hidden = true; return }
+    const p = Math.min(100, Math.round((l.tokeni_folositi / Math.max(1, l.limita_tokeni)) * 100))
+    $('limita').innerHTML = `<span>Ai folosit ${p}% din limita chatului.</span><div class="bara-progres" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100" aria-label="Limita chatului"><i style="width:${p}%"></i></div>`
+    $('limita').hidden = false
+  }
+  $('lucrari').addEventListener('click', (ev) => { const b = ev.target.closest('.lucrare'); if (b) deschide(b.dataset.id) })
+
+  // ---------- Chatul ----------
+  async function deschide(id) {
+    curenta = lucrari.find((l) => l.id === id)
+    if (!curenta) return
+    memorie.set('santier-log:lucrare', id)
+    if (location.hash !== '#chat') history.pushState(null, '', '#chat')
+    $('titlu-chat').textContent = curenta.nume
+    $('mesaje').innerHTML = '<div class="lucreaza"><i></i>Se încarcă istoricul…</div>'
+    arata('ecran-chat')
+    const { data: conv } = await supabase.from('conversatii').select('id').eq('lucrare_id', id).maybeSingle()
+    const { data: istoric } = conv
+      ? await supabase.from('mesaje').select('rol, continut').eq('conversatie_id', conv.id).order('id')
+      : { data: [] }
+    if (curenta?.id !== id) return
+    $('mesaje').innerHTML = ''
+    if (!istoric?.length) bunVenit()
+    for (const m of istoric) adaugaDinIstoric(m)
+    jos(true)
+    $('text').focus({ preventScroll: true })
+  }
+  function inchideChat() { curenta = null; arata('ecran-lucrari'); porneste() }
+  $('inapoi').addEventListener('click', () => history.back())
+  addEventListener('popstate', () => { if (location.hash !== '#chat' && !$('ecran-chat').hidden) inchideChat() })
+
+  function bunVenit() {
+    const d = document.createElement('div'); d.className = 'bun-venit'
+    d.innerHTML = `<p><strong>Scrie ca pe WhatsApp.</strong> Eu completez jurnalul și PV-urile pentru „${esc(curenta.nume)}”.</p>
+      <div class="exemple">${EXEMPLE.map((e) => `<button class="exemplu" type="button">${esc(e)}</button>`).join('')}</div>`
+    d.addEventListener('click', (ev) => { const b = ev.target.closest('.exemplu'); if (b) { $('text').value = b.textContent; potTrimite(); $('text').focus() } })
+    $('mesaje').append(d)
+  }
+
+  // Istoricul e exact ce a venit de la Claude: arătăm textul și uneltele folosite, nu și rezultatele lor.
+  function adaugaDinIstoric({ rol, continut }) {
+    const blocuri = Array.isArray(continut) ? continut : [{ type: 'text', text: String(continut) }]
+    if (rol === 'user') {
+      const t = blocuri.filter((b) => b.type === 'text').map((b) => b.text).join('\n')
+      if (t) bulaOm(t)
+      return
+    }
+    const unelte = blocuri.filter((b) => b.type === 'mcp_tool_use').map((b) => b.name)
+    if (unelte.length) cipuri(unelte)
+    const t = blocuri.filter((b) => b.type === 'text').map((b) => b.text).join('')
+    if (t) bulaClaude().innerHTML = markdown(t)
+  }
+  function bulaOm(t) { const d = document.createElement('div'); d.className = 'mesaj om'; d.textContent = t; $('mesaje').append(d) }
+  function bulaClaude() { const d = document.createElement('div'); d.className = 'mesaj claude'; $('mesaje').append(d); return d }
+  function cipuri(nume) {
+    const d = document.createElement('div'); d.className = 'unelte'
+    d.innerHTML = [...new Set(nume)].map((n) => `<span class="unealta">${esc(textUnealta(n))}</span>`).join('')
+    $('mesaje').append(d)
+  }
+  function jos(imediat) { const f = $('fir'); f.scrollTo({ top: f.scrollHeight, behavior: imediat ? 'auto' : 'smooth' }) }
+
+  // Markdown minimal și sigur: titluri, liste, **bold**, `cod`, linkuri. Totul e escapat întâi.
+  function inline(s) {
+    return esc(s)
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (m, p, u) => `${p}<a href="${u}" target="_blank" rel="noopener">${u.length > 48 ? 'Descarcă fișierul' : u}</a>`)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+  }
+  function markdown(text) {
+    const out = []; let lista = null
+    const inchide = () => { if (lista) { out.push(`</${lista}>`); lista = null } }
+    for (const linie of text.split('\n')) {
+      const ul = linie.match(/^\s*[-*•]\s+(.*)$/), ol = linie.match(/^\s*\d+[.)]\s+(.*)$/), h = linie.match(/^#{1,4}\s+(.*)$/)
+      if (ul || ol) {
+        const tip = ul ? 'ul' : 'ol'
+        if (lista !== tip) { inchide(); out.push(`<${tip}>`); lista = tip }
+        out.push(`<li>${inline((ul || ol)[1])}</li>`)
+      } else if (h) { inchide(); out.push(`<h3>${inline(h[1])}</h3>`) }
+      else if (!linie.trim()) inchide()
+      else { inchide(); out.push(`<p>${inline(linie)}</p>`) }
+    }
+    inchide()
+    return out.join('')
+  }
+
+  // ---------- Trimiterea, cu răspunsul în flux ----------
+  const potTrimite = () => { $('trimite').disabled = ocupat || !$('text').value.trim(); creste() }
+  function creste() { const t = $('text'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, innerHeight * 0.4) + 'px' }
+  $('text').addEventListener('input', potTrimite)
+  $('text').addEventListener('keydown', (ev) => {
+    // Pe calculator, Enter trimite (Shift+Enter = rând nou). Pe telefon, Enter face rând nou.
+    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && matchMedia('(pointer: fine)').matches) { ev.preventDefault(); $('form-mesaj').requestSubmit() }
+  })
+  $('form-mesaj').addEventListener('submit', async (ev) => {
+    ev.preventDefault()
+    const text = $('text').value.trim()
+    if (!text || ocupat || !curenta) return
+    ocupat = true; $('text').value = ''; potTrimite()
+    document.querySelector('.bun-venit')?.remove()
+    bulaOm(text)
+    const lucreaza = document.createElement('div'); lucreaza.className = 'lucreaza'; lucreaza.innerHTML = '<i></i><span>Mă gândesc…</span>'
+    $('mesaje').append(lucreaza); jos()
+    let bula = null, acumulat = ''
+    const unelte = []
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { location.reload(); return }
+      const r = await fetch(`${URL_SUPABASE}/functions/v1/chat`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: CHEIE_PUBLICA, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lucrare_id: curenta.id, mesaj: text }),
+      })
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}))
+        throw new Error(e.eroare || `Eroare ${r.status}. Încearcă din nou.`)
+      }
+      const dec = new TextDecoder(); let buf = ''
+      for await (const bucata of r.body) {
+        buf += dec.decode(bucata, { stream: true })
+        let i
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          const linie = buf.slice(0, i); buf = buf.slice(i + 2)
+          if (!linie.startsWith('data: ')) continue
+          const evt = JSON.parse(linie.slice(6))
+          if (evt.tip === 'unealta') {
+            unelte.push(evt.nume)
+            lucreaza.querySelector('span').textContent = textUnealta(evt.nume)[0].toUpperCase() + textUnealta(evt.nume).slice(1) + '…'
+            // Text înainte de unealtă rămâne cum e; ce vine după începe o bulă nouă.
+            bula = null; acumulat = ''
+          } else if (evt.tip === 'text') {
+            if (!bula) {
+              if (unelte.length) { cipuri(unelte.splice(0)) }
+              bula = bulaClaude()
+              $('mesaje').append(lucreaza)
+            }
+            acumulat += evt.text
+            bula.innerHTML = markdown(acumulat)
+            jos()
+          } else if (evt.tip === 'gata') {
+            if (evt.limita) arataLimita({ limita_tokeni: evt.limita, tokeni_folositi: evt.folositi })
+          } else if (evt.tip === 'eroare') {
+            throw new Error(evt.mesaj)
+          }
+        }
+      }
+      if (unelte.length) cipuri(unelte.splice(0))
+    } catch (e) {
+      const d = document.createElement('div'); d.className = 'eroare-chat'; d.setAttribute('role', 'alert')
+      d.textContent = (e instanceof TypeError ? 'Nu am internet acum. Mesajul nu a plecat.' : e.message) + ' '
+      const reia = document.createElement('button'); reia.type = 'button'; reia.className = 'link'; reia.textContent = 'Pune textul înapoi'
+      reia.addEventListener('click', () => { $('text').value = text; potTrimite(); $('text').focus(); d.remove() })
+      d.append(reia); $('mesaje').append(d)
+    } finally {
+      lucreaza.remove(); ocupat = false; potTrimite(); jos()
+    }
+  })
+
+  // ---------- Pornire ----------
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {})
+  supabase.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') arata('ecran-login') })
+  porneste()
+</script>
+</body>
+</html>
