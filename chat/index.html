@@ -118,6 +118,35 @@
   .trimite { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; display: grid; place-items: center; cursor: pointer; }
   .trimite:disabled { opacity: .45; cursor: default; }
   .trimite svg { width: 20px; height: 20px; }
+  .scrie .icon-btn { width: 44px; height: 44px; color: var(--muted); }
+
+  /* Lista Documente: foaie care urcă de jos. Căutare, „Folosite des”, apoi categorii închise. */
+  #documente { margin: auto auto 0; width: 100%; max-width: 640px; max-height: 85dvh; padding: 0; border: 0; border-radius: 16px 16px 0 0; background: var(--panel); color: var(--ink); }
+  #documente::backdrop { background: rgb(0 0 0 / .45); }
+  #documente[open] { display: flex; flex-direction: column; }
+  .foaie-cap { flex: none; padding: 8px 0 10px; border-bottom: 1px solid var(--line); }
+  .foaie-cap .maner { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 8px; }
+  .foaie-cap .rand { display: flex; align-items: center; gap: 8px; }
+  .foaie-cap h2 { flex: 1; font-size: 17px; margin: 0; }
+  .foaie-cap input { margin: 8px 0 0; }
+  .foaie-corp { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding-block: 8px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .grup-titlu { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 600; margin: 10px 0 4px; }
+  .doc { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; text-align: left; background: none; border: 0; border-top: 1px solid var(--line); padding: 8px 2px; cursor: pointer; }
+  .doc:hover { background: var(--hover); }
+  .doc span { flex: 1; min-width: 0; }
+  .doc small { color: var(--faint); font-size: 12px; }
+  .doc[aria-disabled="true"] { cursor: default; color: var(--faint); }
+  .doc[aria-disabled="true"]:hover { background: none; }
+  .doc .curand { flex: none; font-size: 12px; color: var(--faint); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+  .categorie { border-top: 1px solid var(--line); }
+  .categorie summary { display: flex; align-items: center; gap: 10px; min-height: 48px; cursor: pointer; list-style: none; font-weight: 600; }
+  .categorie summary::-webkit-details-marker { display: none; }
+  .categorie summary span { flex: 1; }
+  .categorie summary small { font-weight: 400; color: var(--muted); font-size: 13px; }
+  .categorie summary::after { content: ""; width: 8px; height: 8px; border: solid var(--faint); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: 0 6px 4px; transition: transform .15s; }
+  .categorie[open] summary::after { transform: rotate(-135deg); margin-bottom: -4px; }
+  .categorie .doc { padding-left: 14px; }
+  @media (prefers-reduced-motion: reduce) { .categorie summary::after { transition: none; } }
 </style>
 </head>
 <body>
@@ -174,6 +203,9 @@
   </div>
   <div class="scrie gutter">
     <form id="form-mesaj">
+      <button class="icon-btn" id="btn-documente" type="button" aria-label="Documente" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+      </button>
       <textarea id="text" rows="1" placeholder="Scrie ce s-a lucrat azi…" enterkeyhint="send" aria-label="Mesaj"></textarea>
       <button class="trimite" id="trimite" type="submit" aria-label="Trimite" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
@@ -181,6 +213,20 @@
     </form>
   </div>
 </div>
+
+<dialog id="documente" aria-labelledby="documente-titlu">
+  <div class="foaie-cap gutter">
+    <div class="maner"></div>
+    <div class="rand">
+      <h2 id="documente-titlu">Documente</h2>
+      <button class="icon-btn" id="documente-inchide" type="button" aria-label="Închide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <input id="documente-cauta" type="search" placeholder="Caută: beton, presiune, recepție" aria-label="Caută un document" autocomplete="off">
+  </div>
+  <div class="foaie-corp gutter" id="documente-lista"><p class="lucreaza"><i></i>Se încarcă…</p></div>
+</dialog>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/+esm'
@@ -347,6 +393,76 @@
     inchide()
     return out.join('')
   }
+
+  // ---------- Documente: catalogul de pe server, grupat pe categorii ----------
+  // Ce nu e gata apare dezactivat, cu „în curând”, ca testerul să vadă ce urmează.
+  let catalog = null
+  let folositeDes = []
+  const fara = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+  async function deschideDocumente() {
+    $('documente-cauta').value = ''
+    $('documente').showModal()
+    if (!catalog) {
+      const { data, error } = await supabase.from('catalog_documente').select('cod, categorie, ordine_categorie, nume, ordine, activ, text_pornire, tip').order('ordine_categorie').order('ordine')
+      if (error) { $('documente-lista').innerHTML = '<p class="eroare">Nu pot încărca lista. Verifică internetul.</p>'; return }
+      catalog = data
+    }
+    // Folosite des: jurnalul, apoi documentele emise cel mai des pe lucrarea asta.
+    const { data: emise } = await supabase.from('documente').select('tip').eq('lucrare_id', curenta.id)
+    const nr = {}
+    for (const d of emise ?? []) nr[d.tip] = (nr[d.tip] ?? 0) + 1
+    const dupaFolosire = catalog.filter((c) => c.activ && c.tip).sort((a, b) => (nr[b.tip] ?? 0) - (nr[a.tip] ?? 0))
+    folositeDes = [catalog.find((c) => c.cod === 'JS-01'), ...dupaFolosire.slice(0, 2)].filter(Boolean)
+    deseneaza('')
+  }
+
+  function randDoc(c, cuCategorie) {
+    const extra = cuCategorie ? `<small>${esc(c.categorie)}</small>` : ''
+    return c.activ
+      ? `<button class="doc" type="button" data-cod="${esc(c.cod)}"><span>${esc(c.nume)}${extra ? '<br>' + extra : ''}</span></button>`
+      : `<button class="doc" type="button" aria-disabled="true"><span>${esc(c.nume)}${extra ? '<br>' + extra : ''}</span><em class="curand">în curând</em></button>`
+  }
+
+  function deseneaza(cautare) {
+    const q = fara(cautare.trim())
+    if (q) {
+      const gasite = catalog.filter((c) => fara(c.nume + ' ' + c.categorie).includes(q)).sort((a, b) => b.activ - a.activ)
+      $('documente-lista').innerHTML = gasite.length ? gasite.map((c) => randDoc(c, true)).join('')
+        : `<p class="gol">Niciun document pentru „${esc(cautare.trim())}”. Poți scrie direct în chat ce ai nevoie.</p>`
+      return
+    }
+    const categorii = []
+    for (const c of catalog) {
+      let g = categorii.at(-1)
+      if (g?.nume !== c.categorie) categorii.push(g = { nume: c.categorie, docs: [] })
+      g.docs.push(c)
+    }
+    $('documente-lista').innerHTML =
+      `<div class="grup-titlu">Folosite des</div>${folositeDes.map((c) => randDoc(c)).join('')}` +
+      `<div class="grup-titlu" style="margin-top:18px">Toate, pe categorii</div>` +
+      categorii.map((g) => {
+        const gata = g.docs.filter((d) => d.activ).length
+        return `<details class="categorie"><summary><span>${esc(g.nume)}</span><small>${gata ? `${gata} din ${g.docs.length}` : `${g.docs.length}, în curând`}</small></summary>${g.docs.map((d) => randDoc(d)).join('')}</details>`
+      }).join('')
+  }
+
+  $('btn-documente').addEventListener('click', () => { if (curenta) deschideDocumente() })
+  $('documente-inchide').addEventListener('click', () => $('documente').close())
+  // Atingerea în afara foii o închide.
+  $('documente').addEventListener('click', (ev) => { if (ev.target === $('documente')) $('documente').close() })
+  $('documente-cauta').addEventListener('input', (ev) => { if (catalog) deseneaza(ev.target.value) })
+  $('documente-lista').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.doc[data-cod]')
+    if (!b) return
+    const c = catalog.find((x) => x.cod === b.dataset.cod)
+    $('documente').close()
+    const t = $('text')
+    t.value = c.text_pornire ?? c.nume
+    potTrimite()
+    t.focus()
+    t.setSelectionRange(t.value.length, t.value.length)
+  })
 
   // ---------- Trimiterea, cu răspunsul în flux ----------
   const potTrimite = () => { $('trimite').disabled = ocupat || !$('text').value.trim(); creste() }
