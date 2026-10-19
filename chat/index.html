@@ -114,7 +114,7 @@
 
   .scrie { flex: none; background: var(--panel); border-top: 1px solid var(--line); padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
   .scrie form { max-width: 720px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; }
-  .scrie textarea { flex: 1; min-width: 0; resize: none; max-height: 40vh; padding: 10px 12px; font-size: 16px; line-height: 1.4; background: var(--bg); border: 1px solid var(--line); border-radius: 20px; }
+  .scrie textarea { flex: 1; min-width: 0; resize: none; overflow-y: hidden; max-height: 40vh; padding: 10px 12px; font-size: 16px; line-height: 1.4; background: var(--bg); border: 1px solid var(--line); border-radius: 20px; }
   .trimite { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; display: grid; place-items: center; cursor: pointer; }
   .trimite:disabled { opacity: .45; cursor: default; }
   .trimite svg { width: 20px; height: 20px; }
@@ -350,7 +350,14 @@
 
   // ---------- Trimiterea, cu răspunsul în flux ----------
   const potTrimite = () => { $('trimite').disabled = ocupat || !$('text').value.trim(); creste() }
-  function creste() { const t = $('text'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, innerHeight * 0.4) + 'px' }
+  // Caseta crește cu textul. scrollHeight nu include bordura, iar fără ea apare o bară de derulare inutilă.
+  function creste() {
+    const t = $('text'), max = innerHeight * 0.4
+    t.style.height = 'auto'
+    const h = t.scrollHeight + t.offsetHeight - t.clientHeight
+    t.style.height = Math.min(h, max) + 'px'
+    t.style.overflowY = h > max ? 'auto' : 'hidden'
+  }
   $('text').addEventListener('input', potTrimite)
   $('text').addEventListener('keydown', (ev) => {
     // Pe calculator, Enter trimite (Shift+Enter = rând nou). Pe telefon, Enter face rând nou.
