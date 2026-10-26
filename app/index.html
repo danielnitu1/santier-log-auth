@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>Cartea Tehnică · santier-log</title>
 <style>
-  /* Layout: bară sus cu firma; stânga lucrările; dreapta Cartea Tehnică a lucrării alese, pe secțiuni ca dosarul fizic. */
+  /* Layout: bară sus cu firma; stânga proiectele; dreapta Cartea Tehnică a proiectului ales, pe secțiuni ca dosarul fizic. */
   :root {
     --bg: #f6f5f2; --panel: #ffffff; --ink: #1f1e1b; --muted: #6b6a66; --faint: #9a988f;
     --line: #e4e2dc; --hover: #f0eee9; --accent: #c2410c; --accent-soft: #fdebe1;
@@ -58,11 +58,11 @@
   .app { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: calc(100vh - 50px); }
   aside { border-right: 1px solid var(--line); padding: 16px 10px; background: var(--panel); }
   aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); margin: 0 6px 8px; font-weight: 600; }
-  .lucrare-btn { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 9px 10px; cursor: pointer; }
-  .lucrare-btn:hover { background: var(--hover); }
-  .lucrare-btn[aria-current="true"] { background: var(--accent-soft); }
-  .lucrare-btn strong { display: block; font-weight: 600; }
-  .lucrare-btn span { color: var(--muted); font-size: 13px; }
+  .proiect-btn { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 9px 10px; cursor: pointer; }
+  .proiect-btn:hover { background: var(--hover); }
+  .proiect-btn[aria-current="true"] { background: var(--accent-soft); }
+  .proiect-btn strong { display: block; font-weight: 600; }
+  .proiect-btn span { color: var(--muted); font-size: 13px; }
 
   main { min-width: 0; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
   .continut { max-width: 920px; margin: 0 auto; display: grid; gap: 22px; }
@@ -71,12 +71,12 @@
   .antet dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 4px 20px; margin: 0; font-size: 14px; }
   .antet dt { color: var(--muted); font-size: 12px; }
   .antet dd { margin: 0 0 6px; }
-  /* Titlul lucrării și butonul Setări. */
+  /* Titlul proiectului și butonul Setări. */
   .titlu-rand { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .titlu-rand h1 { min-width: 0; }
   .setari-btn { flex: 0 0 auto; min-height: 36px; padding: 6px 12px; font-size: 14px; margin-top: 2px; }
 
-  /* Fereastra Setări lucrare: centrată pe calculator, pe tot ecranul pe telefon. */
+  /* Fereastra Setări proiect: centrată pe calculator, pe tot ecranul pe telefon. */
   dialog#setari {
     width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; overflow: auto;
     border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink);
@@ -207,12 +207,12 @@
     .app { grid-template-columns: 1fr; }
     aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 0; }
     aside h2 { display: none; }
-    #lucrari {
+    #proiecte {
       display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity;
       padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
     }
-    .lucrare-btn { width: auto; flex: 0 0 auto; max-width: 75vw; scroll-snap-align: start; border: 1px solid var(--line); }
-    .lucrare-btn strong, .lucrare-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .proiect-btn { width: auto; flex: 0 0 auto; max-width: 75vw; scroll-snap-align: start; border: 1px solid var(--line); }
+    .proiect-btn strong, .proiect-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tip-cap { grid-template-columns: 44px minmax(0, 1fr) auto; min-height: 52px; }
     .docs { padding: 4px 12px 12px; }
     .bara .email { display: none; }
@@ -270,20 +270,20 @@
     <div class="dreapta"><span class="email" id="utilizator"></span><button id="iesire" type="button">Ieși</button></div>
   </header>
   <div class="app">
-    <aside aria-label="Lucrări"><h2>Lucrări</h2><div id="lucrari"></div></aside>
-    <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă lucrările…</p></div></main>
+    <aside aria-label="Proiecte"><h2>Proiecte</h2><div id="proiecte"></div></aside>
+    <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă proiectele…</p></div></main>
   </div>
 </div>
 
 <dialog id="setari" aria-labelledby="setari-titlu">
   <div class="setari-cap">
-    <h2 id="setari-titlu">Setări lucrare</h2>
+    <h2 id="setari-titlu">Setări proiect</h2>
     <button class="inchide" type="button" id="setari-inchide" aria-label="Închide">✕</button>
   </div>
   <form id="form-detalii" class="setari-sectiune">
     <h3>Detalii</h3>
     <p class="ajutor">Apar în antetul fiecărui document nou, exact cum le scrii aici.</p>
-    <label for="d-nume">Denumirea lucrării</label>
+    <label for="d-nume">Denumirea proiectului</label>
     <input id="d-nume" name="nume" required>
     <label for="d-antreprenor">Antreprenor</label>
     <input id="d-antreprenor" name="antreprenor">
@@ -336,7 +336,7 @@
     'PV etanșeitate conducte exterioare canalizare', 'PV etanșeitate tuburi/țevi',
     'PV etanșeitate canale de aer ventilare-climatizare', 'PV etanșeitate canale cu nivel liber',
   ].map((nume, i) => ({ cod: `PI-${String(i + 1).padStart(2, '0')}`, nume, activ: ACTIVE_INSTALATII[nume] }))
-  const DOCUMENTE_LUCRARE = {
+  const DOCUMENTE_PROIECT = {
     'Documente RTE': ['Referat de prezentare RTE'],
     'Diriginte de șantier': ['Dispoziție de oprire a execuției lucrărilor', 'Raport de neconformitate',
       'Referatul dirigintelui de șantier (recepția la terminare)', 'Înștiințare I.S.C. — oprirea lucrărilor (24 de ore)'],
@@ -370,17 +370,17 @@
     pv_prize_pamant: 'PV încercare prize de pământ',
   }
   const SFATURI = {
-    jurnal: 'Spune-i lui Claude: <q>Azi pe [lucrare]: 4 dulgheri, cofrare stâlpi axa B 12 mp, macara turn. Mâine turnăm.</q>',
+    jurnal: 'Spune-i lui Claude: <q>Azi pe [proiect]: 4 dulgheri, cofrare stâlpi axa B 12 mp, macara turn. Mâine turnăm.</q>',
     pv_proba_presiune_rece: 'Spune-i lui Claude: <q>Fă PV de probă de presiune la rece pentru apa rece de la parter: 9 bar, 2 ore, fără pierderi.</q>',
     pv_etanseitate_canalizare_interioara: 'Spune-i lui Claude: <q>Fă PV de etanșeitate pentru canalizarea menajeră interioară: umplut cu apă 24 de ore, fără scurgeri.</q>',
     pv_prize_pamant: 'Spune-i lui Claude: <q>Fă PV de prize de pământ la TG: 2,8 ohmi, sol umed, aparat Megger DET4TC2 seria 101234.</q>',
-    pv_lucrari_ascunse: 'Spune-i lui Claude: <q>Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6, proiect 45/2026.</q>',
+    pv_lucrari_ascunse: 'Spune-i lui Claude: <q>Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6, proiectul tehnic 45/2026.</q>',
   }
   const ROLURI = { manager_proiect: 'Manager proiect', sef_santier: 'Șef șantier', responsabil_cq: 'CQ', supervizor: 'Supervizor',
     rte: 'RTE', diriginte: 'Diriginte', proiectant: 'Proiectant', reprezentant_beneficiar: 'Repr. beneficiar' }
   const STARI = { ciorna: 'ciornă', emis: 'emis', semnat: 'semnat', anulat: 'anulat' }
 
-  let lucrari = []
+  let proiecte = []
   let selectata = null
 
   // ---------- Login ----------
@@ -414,36 +414,36 @@
 
     const [{ data: membri }, { data: lc, error }] = await Promise.all([
       supabase.from('membri').select('rol, firme ( nume )').eq('user_id', user.id),
-      supabase.from('lucrari').select('id, firma_id, nume, antreprenor, beneficiar, santier_obiectiv, tip, sigle, obiecte ( id, cod, nume, text_antet, ordine ), persoane_lucrare ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
+      supabase.from('proiecte').select('id, firma_id, nume, antreprenor, beneficiar, santier_obiectiv, tip, sigle, obiecte ( id, cod, nume, text_antet, ordine ), persoane_proiect ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
     ])
     $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || '—'
     if (error) { $('pagina').innerHTML = `<p class="eroare">${esc(error.message)}</p>`; return }
-    lucrari = lc ?? []
-    deseneazaLucrari()
+    proiecte = lc ?? []
+    deseneazaProiecte()
     const codDocument = new URLSearchParams(location.search).get('d')
     if (codDocument) return deseneazaDocument(codDocument)
     const dinAdresa = location.hash.slice(1)
-    alege(lucrari.find((l) => l.id === dinAdresa)?.id ?? lucrari[0]?.id)
+    alege(proiecte.find((l) => l.id === dinAdresa)?.id ?? proiecte[0]?.id)
   }
 
-  function deseneazaLucrari() {
-    $('lucrari').innerHTML = lucrari.length
-      ? lucrari.map((l) => `<button class="lucrare-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span>${esc(l.beneficiar || l.santier_obiectiv || '')}</span></button>`).join('')
-      : '<p style="color:var(--muted);padding:0 6px">Nicio lucrare încă. Creeaz-o din Claude.</p>'
+  function deseneazaProiecte() {
+    $('proiecte').innerHTML = proiecte.length
+      ? proiecte.map((l) => `<button class="proiect-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span>${esc(l.beneficiar || l.santier_obiectiv || '')}</span></button>`).join('')
+      : '<p style="color:var(--muted);padding:0 6px">Niciun proiect încă. Creează-l din Claude.</p>'
   }
-  $('lucrari').addEventListener('click', (ev) => { const b = ev.target.closest('.lucrare-btn'); if (b) alege(b.dataset.id) })
+  $('proiecte').addEventListener('click', (ev) => { const b = ev.target.closest('.proiect-btn'); if (b) alege(b.dataset.id) })
 
   async function alege(id) {
-    selectata = lucrari.find((l) => l.id === id)
-    for (const b of document.querySelectorAll('.lucrare-btn')) b.setAttribute('aria-current', String(b.dataset.id === id))
-    if (!selectata) { $('pagina').innerHTML = '<p style="color:var(--muted)">Nicio lucrare. Creeaz-o din Claude: <q>Creează lucrarea …</q></p>'; return }
+    selectata = proiecte.find((l) => l.id === id)
+    for (const b of document.querySelectorAll('.proiect-btn')) b.setAttribute('aria-current', String(b.dataset.id === id))
+    if (!selectata) { $('pagina').innerHTML = '<p style="color:var(--muted)">Niciun proiect. Creează-l din Claude: <q>Creează proiectul …</q></p>'; return }
     history.replaceState(null, '', '#' + id)
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentele…</p>'
     const [{ data: zile }, { data: docs }] = await Promise.all([
-      supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx, fisiere_semnate').eq('lucrare_id', id).order('data', { ascending: false }),
-      supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('lucrare_id', id),
+      supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx, fisiere_semnate').eq('proiect_id', id).order('data', { ascending: false }),
+      supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('proiect_id', id),
     ])
-    deseneazaLucrarea(selectata, zile ?? [], docs ?? [])
+    deseneazaProiectul(selectata, zile ?? [], docs ?? [])
   }
 
   // ---------- Randare ----------
@@ -527,7 +527,7 @@
 
   function sectiuneSigle(l) {
     const sigle = Array.isArray(l.sigle) ? l.sigle : [null, null, null]
-    return `<div class="sigle" data-lucrare="${esc(l.id)}">
+    return `<div class="sigle" data-proiect="${esc(l.id)}">
       <h3>Sigle pe documente</h3>
       <p class="ajutor">Apar sus pe fiecare document nou. De obicei: beneficiar, constructor, dirigenție. Pune doar ce ai nevoie.</p>
       <div class="sigle-locuri">${LOCURI_SIGLE.map((loc, i) => `
@@ -569,12 +569,12 @@
     const l = selectata
     const sigle = Array.isArray(l.sigle) ? [...l.sigle] : [null, null, null]
     sigle[loc] = cale
-    const { error } = await supabase.from('lucrari').update({ sigle }).eq('id', l.id)
-    if (error) throw new Error(/row-level|permission/i.test(error.message) ? 'Contul tău poate doar vedea lucrarea.' : error.message)
+    const { error } = await supabase.from('proiecte').update({ sigle }).eq('id', l.id)
+    if (error) throw new Error(/row-level|permission/i.test(error.message) ? 'Contul tău poate doar vedea proiectul.' : error.message)
     l.sigle = sigle
   }
 
-  // ---------- Fereastra Setări lucrare ----------
+  // ---------- Fereastra Setări proiect ----------
   function deseneazaSigleSetari() {
     $('setari-sigle').innerHTML = sectiuneSigle(selectata)
     arataSigle()
@@ -606,15 +606,15 @@
       beneficiar: $('d-beneficiar').value.trim() || null,
       santier_obiectiv: $('d-santier').value.trim() || null,
     }
-    const { error } = await supabase.from('lucrari').update(detalii).eq('id', selectata.id)
+    const { error } = await supabase.from('proiecte').update(detalii).eq('id', selectata.id)
     b.disabled = false
     if (error) {
-      stareEl.textContent = /row-level|permission/i.test(error.message) ? 'Contul tău poate doar vedea lucrarea.' : error.message
+      stareEl.textContent = /row-level|permission/i.test(error.message) ? 'Contul tău poate doar vedea proiectul.' : error.message
       stareEl.classList.add('eroare')
       return
     }
     Object.assign(selectata, detalii)
-    deseneazaLucrari()
+    deseneazaProiecte()
     stareEl.textContent = 'Salvat.'
   })
 
@@ -635,7 +635,7 @@
     stareEl.textContent = 'Se încarcă sigla…'
     try {
       const png = await siglaPng(ev.target.files[0])
-      const cale = `firme/${selectata.firma_id}/lucrari/${selectata.id}/sigle/${loc + 1}-${Date.now()}.png`
+      const cale = `firme/${selectata.firma_id}/proiecte/${selectata.id}/sigle/${loc + 1}-${Date.now()}.png`
       const { error } = await supabase.storage.from('documente').upload(cale, png, { contentType: 'image/png' })
       if (error) throw error
       await salveazaSigle(loc, cale)
@@ -646,11 +646,11 @@
     }
   })
 
-  function deseneazaLucrarea(l, zile, docs) {
+  function deseneazaProiectul(l, zile, docs) {
     const obiecte = [...(l.obiecte ?? [])].sort((a, b) => a.ordine - b.ordine)
-    const persoane = [...(l.persoane_lucrare ?? [])].sort((a, b) => a.ordine - b.ordine)
+    const persoane = [...(l.persoane_proiect ?? [])].sort((a, b) => a.ordine - b.ordine)
 
-    const totalTipuri = JURNALE.length + PV_CONSTRUCTII.length + PV_INSTALATII.length + Object.values(DOCUMENTE_LUCRARE).flat().length + 2
+    const totalTipuri = JURNALE.length + PV_CONSTRUCTII.length + PV_INSTALATII.length + Object.values(DOCUMENTE_PROIECT).flat().length + 2
     const activeTipuri = JURNALE.filter((x) => x.activ).length + PV_CONSTRUCTII.filter((x) => x.activ).length + PV_INSTALATII.filter((x) => x.activ).length + 1 // + registrul
     const nrDocs = zile.length + docs.length
 
@@ -672,7 +672,7 @@
       </div>`
     }).join('')
 
-    const documenteHtml = `<div class="grupuri-wip">${Object.entries(DOCUMENTE_LUCRARE).map(([cat, lista]) => grupInLucru(cat, lista)).join('')}</div>`
+    const documenteHtml = `<div class="grupuri-wip">${Object.entries(DOCUMENTE_PROIECT).map(([cat, lista]) => grupInLucru(cat, lista)).join('')}</div>`
 
     $('pagina').innerHTML = `
       <div class="antet">
@@ -691,13 +691,13 @@
         <div class="legenda"><span>${activeTipuri} din ${totalTipuri} tipuri de documente disponibile azi</span><span>${eticheta(true)} se face din Claude</span><span>${eticheta(false)} urmează</span></div>
       </div>
 
-      <section class="grup"><h2>Jurnale <small>pentru toată lucrarea</small></h2><div class="lista">
+      <section class="grup"><h2>Jurnale <small>pentru tot proiectul</small></h2><div class="lista">
         ${JURNALE.map((t) => t.activ ? rand(t, { activ: true, numar: zile.length, corp: corpJurnal(zile) }) : rand(t)).join('')}
       </div></section>
 
       ${obiecteHtml}
 
-      <section class="grup"><h2>Documentele lucrării <small>${Object.values(DOCUMENTE_LUCRARE).flat().length} modele, pe categorii</small></h2></section>
+      <section class="grup"><h2>Documentele proiectului <small>${Object.values(DOCUMENTE_PROIECT).flat().length} modele, pe categorii</small></h2></section>
       ${documenteHtml}
 
       <section class="grup"><h2>Dosarul complet</h2><div class="lista">
@@ -832,16 +832,16 @@
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentul…</p>'
     const tabelDoc = dec.fel === 'j' ? 'jurnal_zile' : 'documente'
     const coloane = dec.fel === 'j'
-      ? '*, lucrari ( id, nume, antreprenor, beneficiar, santier_obiectiv )'
-      : '*, lucrari ( id, nume, antreprenor, beneficiar, santier_obiectiv ), obiecte ( cod, nume )'
+      ? '*, proiecte ( id, nume, antreprenor, beneficiar, santier_obiectiv )'
+      : '*, proiecte ( id, nume, antreprenor, beneficiar, santier_obiectiv ), obiecte ( cod, nume )'
     const { data: d, error } = await supabase.from(tabelDoc).select(coloane).eq('id', dec.id).maybeSingle()
     if (error || !d) {
       $('pagina').innerHTML = `<div class="doc-card"><h1>Documentul nu e disponibil</h1>
         <p>Nu există sau contul <strong>${esc($('utilizator').textContent)}</strong> nu are acces la el. Dacă e documentul altei firme, intră cu contul de acolo.</p>
-        <p><a href="./">Vezi lucrările tale</a></p></div>`
+        <p><a href="./">Vezi proiectele tale</a></p></div>`
       return
     }
-    const l = d.lucrari ?? {}
+    const l = d.proiecte ?? {}
     docCurent = { cod, fel: dec.fel, id: d.id, firma_id: d.firma_id }
     const eJurnal = dec.fel === 'j'
     const titlu = eJurnal
@@ -856,7 +856,7 @@
         <h1>${esc(titlu)}</h1>
         <div class="doc-meta">${stare(d.stare)}<span>${data}</span>${d.versiune > 1 ? `<span>versiunea ${d.versiune}</span>` : ''}</div>
         <dl class="fise">
-          <div><dt>Lucrarea</dt><dd>${esc(l.nume)}</dd></div>
+          <div><dt>Proiectul</dt><dd>${esc(l.nume)}</dd></div>
           <div><dt>Beneficiar</dt><dd>${esc(l.beneficiar || '—')}</dd></div>
         </dl>
       </div>

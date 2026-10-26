@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="santier-log">
 <style>
-  /* Layout: un ecran pe rând (login → lucrări → chat), ca o aplicație de telefon.
+  /* Layout: un ecran pe rând (login → proiecte → chat), ca o aplicație de telefon.
      Culorile și fontul sunt cele din pagina Cartea Tehnică, ca produsul să arate la fel. */
   :root {
     --bg: #f6f5f2; --panel: #ffffff; --ink: #1f1e1b; --muted: #6b6a66; --faint: #9a988f;
@@ -70,17 +70,17 @@
   .icon-btn svg { width: 22px; height: 22px; }
   .text-btn { flex: none; border: 1px solid var(--line); background: none; border-radius: 8px; padding: 5px 10px; font-size: 14px; cursor: pointer; color: var(--muted); }
 
-  /* Lista de lucrări */
+  /* Lista de proiecte */
   .lista { flex: 1; overflow-y: auto; padding-block: 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
   .lista-in { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
   .sectiune-titlu { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 600; margin: 4px 2px; }
   .carduri { display: flex; flex-direction: column; gap: 8px; }
-  .lucrare { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; }
-  .lucrare:hover { border-color: var(--faint); }
-  .lucrare div { min-width: 0; flex: 1; }
-  .lucrare strong { display: block; font-weight: 600; }
-  .lucrare span { display: block; color: var(--muted); font-size: 14px; }
-  .lucrare svg { flex: none; width: 18px; height: 18px; color: var(--faint); }
+  .proiect { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; }
+  .proiect:hover { border-color: var(--faint); }
+  .proiect div { min-width: 0; flex: 1; }
+  .proiect strong { display: block; font-weight: 600; }
+  .proiect span { display: block; color: var(--muted); font-size: 14px; }
+  .proiect svg { flex: none; width: 18px; height: 18px; color: var(--faint); }
   .limita { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
   .limita .bara-progres { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
   .limita .bara-progres i { display: block; height: 100%; background: var(--accent); }
@@ -177,15 +177,15 @@
   </div>
 </div>
 
-<div class="ecran" id="ecran-lucrari" hidden>
+<div class="ecran" id="ecran-proiecte" hidden>
   <header class="bara gutter">
-    <h1>Lucrările mele</h1>
+    <h1>Proiectele mele</h1>
     <button class="text-btn" id="iesire" type="button">Ieși</button>
   </header>
   <div class="lista gutter">
     <div class="lista-in">
       <div class="sectiune-titlu" id="firma">Se încarcă…</div>
-      <div id="lucrari" class="carduri"></div>
+      <div id="proiecte" class="carduri"></div>
       <div class="limita" id="limita" hidden></div>
     </div>
   </div>
@@ -193,7 +193,7 @@
 
 <div class="ecran" id="ecran-chat" hidden>
   <header class="bara gutter">
-    <button class="icon-btn" id="inapoi" type="button" aria-label="Înapoi la lucrări">
+    <button class="icon-btn" id="inapoi" type="button" aria-label="Înapoi la proiecte">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <h1 id="titlu-chat">—</h1>
@@ -243,7 +243,7 @@
 
   // Ce face Claude în timp ce cheamă o unealtă, spus pe înțelesul omului.
   const UNELTE = {
-    lucrari_lista: 'caut lucrările', lucrare_creeaza: 'creez lucrarea', lucrare_modifica: 'modific lucrarea',
+    proiecte_lista: 'caut proiectele', proiect_creeaza: 'creez proiectul', proiect_modifica: 'modific proiectul',
     obiect_adauga: 'adaug obiectul', obiect_modifica: 'modific obiectul', persoane_seteaza: 'salvez responsabilii',
     jurnal_zi_citeste: 'citesc jurnalul', jurnal_zi_salveaza: 'salvez ciorna jurnalului', jurnal_zi_emite: 'emit ziua de jurnal',
     jurnal_export: 'pregătesc fișierul jurnalului', pv_citeste: 'citesc registrul PV', pv_salveaza: 'salvez ciorna PV-ului',
@@ -256,13 +256,13 @@
     'Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6.',
   ]
 
-  let lucrari = []
+  let proiecte = []
   let curenta = null
   let ocupat = false
 
   // ---------- Ecrane ----------
   function arata(ecran) {
-    for (const id of ['ecran-login', 'ecran-lucrari', 'ecran-chat']) $(id).hidden = id !== ecran
+    for (const id of ['ecran-login', 'ecran-proiecte', 'ecran-chat']) $(id).hidden = id !== ecran
   }
 
   // ---------- Login (cod pe email, ca în Cartea Tehnică) ----------
@@ -287,25 +287,25 @@
   $('alt-email').addEventListener('click', () => { $('pas-cod').hidden = true; $('pas-email').hidden = false; eroareLogin('') })
   $('iesire').addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
 
-  // ---------- Lucrările ----------
+  // ---------- Proiectele ----------
   async function porneste() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return arata('ecran-login')
     const [{ data: membri }, { data: lc, error }, { data: limita }] = await Promise.all([
       supabase.from('membri').select('firme ( nume )').eq('user_id', user.id),
-      supabase.from('lucrari').select('id, nume, beneficiar').order('modificat_la', { ascending: false }),
+      supabase.from('proiecte').select('id, nume, beneficiar').order('modificat_la', { ascending: false }),
       supabase.from('limite_chat').select('limita_tokeni, tokeni_folositi').eq('user_id', user.id).maybeSingle(),
     ])
     $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || user.email
-    lucrari = lc ?? []
+    proiecte = lc ?? []
     const sageata = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
-    $('lucrari').innerHTML = error ? `<p class="eroare">${esc(error.message)}</p>`
-      : lucrari.length ? lucrari.map((l) => `<button class="lucrare" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong>${l.beneficiar ? `<span>${esc(l.beneficiar)}</span>` : ''}</div>${sageata}</button>`).join('')
-      : '<div class="gol">Nu ai încă lucrări. Cere adminului firmei să te adauge.</div>'
+    $('proiecte').innerHTML = error ? `<p class="eroare">${esc(error.message)}</p>`
+      : proiecte.length ? proiecte.map((l) => `<button class="proiect" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong>${l.beneficiar ? `<span>${esc(l.beneficiar)}</span>` : ''}</div>${sageata}</button>`).join('')
+      : '<div class="gol">Nu ai încă proiecte. Cere adminului firmei să te adauge.</div>'
     arataLimita(limita)
-    const ultima = memorie.get('santier-log:lucrare')
-    if (ultima && lucrari.some((l) => l.id === ultima) && location.hash === '#chat') return deschide(ultima)
-    arata('ecran-lucrari')
+    const ultima = memorie.get('santier-log:proiect')
+    if (ultima && proiecte.some((l) => l.id === ultima) && location.hash === '#chat') return deschide(ultima)
+    arata('ecran-proiecte')
   }
   function arataLimita(l) {
     if (!l) { $('limita').hidden = true; return }
@@ -313,18 +313,18 @@
     $('limita').innerHTML = `<span>Ai folosit ${p}% din limita chatului.</span><div class="bara-progres" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100" aria-label="Limita chatului"><i style="width:${p}%"></i></div>`
     $('limita').hidden = false
   }
-  $('lucrari').addEventListener('click', (ev) => { const b = ev.target.closest('.lucrare'); if (b) deschide(b.dataset.id) })
+  $('proiecte').addEventListener('click', (ev) => { const b = ev.target.closest('.proiect'); if (b) deschide(b.dataset.id) })
 
   // ---------- Chatul ----------
   async function deschide(id) {
-    curenta = lucrari.find((l) => l.id === id)
+    curenta = proiecte.find((l) => l.id === id)
     if (!curenta) return
-    memorie.set('santier-log:lucrare', id)
+    memorie.set('santier-log:proiect', id)
     if (location.hash !== '#chat') history.pushState(null, '', '#chat')
     $('titlu-chat').textContent = curenta.nume
     $('mesaje').innerHTML = '<div class="lucreaza"><i></i>Se încarcă istoricul…</div>'
     arata('ecran-chat')
-    const { data: conv } = await supabase.from('conversatii').select('id').eq('lucrare_id', id).maybeSingle()
+    const { data: conv } = await supabase.from('conversatii').select('id').eq('proiect_id', id).maybeSingle()
     const { data: istoric } = conv
       ? await supabase.from('mesaje').select('rol, continut').eq('conversatie_id', conv.id).order('id')
       : { data: [] }
@@ -335,7 +335,7 @@
     jos(true)
     $('text').focus({ preventScroll: true })
   }
-  function inchideChat() { curenta = null; arata('ecran-lucrari'); porneste() }
+  function inchideChat() { curenta = null; arata('ecran-proiecte'); porneste() }
   $('inapoi').addEventListener('click', () => history.back())
   addEventListener('popstate', () => { if (location.hash !== '#chat' && !$('ecran-chat').hidden) inchideChat() })
 
@@ -408,8 +408,8 @@
       if (error) { $('documente-lista').innerHTML = '<p class="eroare">Nu pot încărca lista. Verifică internetul.</p>'; return }
       catalog = data
     }
-    // Folosite des: jurnalul, apoi documentele emise cel mai des pe lucrarea asta.
-    const { data: emise } = await supabase.from('documente').select('tip').eq('lucrare_id', curenta.id)
+    // Folosite des: jurnalul, apoi documentele emise cel mai des pe proiectul ăsta.
+    const { data: emise } = await supabase.from('documente').select('tip').eq('proiect_id', curenta.id)
     const nr = {}
     for (const d of emise ?? []) nr[d.tip] = (nr[d.tip] ?? 0) + 1
     const dupaFolosire = catalog.filter((c) => c.activ && c.tip).sort((a, b) => (nr[b.tip] ?? 0) - (nr[a.tip] ?? 0))
@@ -496,7 +496,7 @@
       const r = await fetch(`${URL_SUPABASE}/functions/v1/chat`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, apikey: CHEIE_PUBLICA, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lucrare_id: curenta.id, mesaj: text }),
+        body: JSON.stringify({ proiect_id: curenta.id, mesaj: text }),
       })
       if (!r.ok) {
         const e = await r.json().catch(() => ({}))
