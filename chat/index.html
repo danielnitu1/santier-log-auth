@@ -351,7 +351,8 @@
   function adaugaDinIstoric({ rol, continut }) {
     const blocuri = Array.isArray(continut) ? continut : [{ type: 'text', text: String(continut) }]
     if (rol === 'user') {
-      const t = blocuri.filter((b) => b.type === 'text').map((b) => b.text).join('\n')
+      // Primul bloc („Data de azi: …”) e pentru Claude, nu se arată.
+      const t = blocuri.filter((b) => b.type === 'text' && !b.text.startsWith('Data de azi: ')).map((b) => b.text).join('\n')
       if (t) bulaOm(t)
       return
     }
