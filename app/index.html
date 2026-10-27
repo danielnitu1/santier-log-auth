@@ -88,6 +88,10 @@
   .titlu-rand { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .titlu-rand h1 { min-width: 0; }
   .setari-btn { flex: 0 0 auto; min-height: 36px; padding: 6px 12px; font-size: 14px; margin-top: 2px; }
+  /* Butoanele de lângă titlu: Chat (deschide chatul proiectului, într-un tab nou) și Setări. */
+  .actiuni-proiect { flex: 0 0 auto; display: flex; gap: 8px; }
+  a.chat-btn { display: inline-flex; align-items: center; text-decoration: none; color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 600; }
+  a.chat-btn:hover { color: #fff; filter: brightness(1.05); }
 
   /* Fereastra Setări proiect: centrată pe calculator, pe tot ecranul pe telefon. */
   dialog#setari, dialog#nou {
@@ -788,7 +792,7 @@
 
     $('pagina').innerHTML = `
       <div class="antet">
-        <div class="titlu-rand"><h1>${esc(l.nume)}</h1><button class="descarca setari-btn" type="button" id="deschide-setari">⚙ Setări</button></div>
+        <div class="titlu-rand"><h1>${esc(l.nume)}</h1><div class="actiuni-proiect"><a class="descarca setari-btn chat-btn" href="../chat/?proiect=${esc(l.id)}" target="_blank" rel="noopener">Chat</a><button class="descarca setari-btn" type="button" id="deschide-setari">⚙ Setări</button></div></div>
         <dl>
           <div><dt>Tip</dt><dd>${esc(tipul(l)?.nume ?? l.tip_proiect)}</dd></div>
           ${(tipul(l)?.campuri ?? []).filter((c) => c.in_antet || valoare(l, c.cheie)).map((c) => `<div><dt>${esc(c.eticheta)}</dt><dd>${esc(valoare(l, c.cheie) || '—')}</dd></div>`).join('')}

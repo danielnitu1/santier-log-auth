@@ -310,6 +310,12 @@
       : proiecte.length ? proiecte.map((l) => `<button class="proiect" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong>${(() => { const sub = [l.tipuri_proiect?.nume, ...Object.values(l.date ?? {})].filter(Boolean).slice(0, 2).join(' · '); return sub ? `<span>${esc(sub)}</span>` : '' })()}</div>${sageata}</button>`).join('')
       : '<div class="gol">Nu ai încă proiecte. Cere adminului firmei să te adauge.</div>'
     arataLimita(limita)
+    // Deschis din pagina proiectului (butonul „Chat”): ?proiect=<id> duce direct în chatul lui.
+    const dinPagina = new URLSearchParams(location.search).get('proiect')
+    if (dinPagina && proiecte.some((l) => l.id === dinPagina)) {
+      history.replaceState(null, '', location.pathname)
+      return deschide(dinPagina)
+    }
     const ultima = memorie.get('santier-log:proiect')
     if (ultima && proiecte.some((l) => l.id === ultima) && location.hash === '#chat') return deschide(ultima)
     arata('ecran-proiecte')
