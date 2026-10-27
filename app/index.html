@@ -518,9 +518,9 @@
 
   function corpPv(lista, c) {
     const t = lista.length ? tabel([
-      ['Nr. PV', (d) => d.nr_pv ?? '—', 'titlu-card'], ['Data', (d) => dataRo(d.data_doc), 'titlu-card'],
+      ['Nr.', (d) => d.nr_pv ?? '—', 'titlu-card'], ['Data', (d) => dataRo(d.data_doc), 'titlu-card'],
       ['Descriere', (d) => esc(d.descriere || ''), 'lat'], colStare, colGenerat, ['Semnat', semnat('p')],
-    ], lista) : '<p class="gol">Niciun PV încă.</p>'
+    ], lista) : '<p class="gol">Niciun document încă.</p>'
     return t + (sfat(c) ? `<p class="sfat">${sfat(c)}</p>` : '') + SFAT_SEMNAT
   }
 
@@ -856,6 +856,9 @@
     pv_proba_presiune_rece: [['denumire_instalatie', 'Instalația'], ['valoare_presiune', 'Presiune de probă (bar)'], ['timp_mentinere', 'Timp de menținere (ore)'], ['concluzii', 'Concluzii']],
     pv_etanseitate_canalizare_interioara: [['denumire_instalatie', 'Instalația'], ['umplere_apa', 'Umplerea cu apă'], ['concluzii', 'Concluzii']],
     pv_prize_pamant: [['loc_incercare', 'Locul'], ['rezistenta_dispersie', 'Rezistența de dispersie (Ω)'], ['umiditate_sol', 'Umiditatea solului'], ['concluzii', 'Concluzii']],
+    ordin_deplasare: [['angajat_nume', 'Titularul deplasării'], ['destinatia', 'Destinația'], ['scopul', 'Scopul'], ['data_plecare', 'Plecarea'], ['data_sosire', 'Întoarcerea']],
+    pv_predare_echipament: [['predat_de', 'A predat'], ['primit_de', 'A primit'], ['motiv', 'Motivul']],
+    permis_lucru_foc: [['executant_nume', 'Executant'], ['lucrarea', 'Lucrarea'], ['locul', 'Locul'], ['data_lucrare', 'Ziua'], ['supraveghere_de', 'Supraveghere']],
   }
 
   function rezumatPv(d) {
@@ -969,7 +972,7 @@
     $('pagina').innerHTML = `
       <p class="inapoi"><a href="./#${esc(l.id)}">← ${esc(l.nume)}</a></p>
       <div class="doc-card">
-        <div class="doc-tip">${eJurnal ? 'Zi din jurnalul de șantier' : 'Proces verbal'}</div>
+        <div class="doc-tip">${eJurnal ? 'Zi din jurnalul de șantier' : 'Document'}</div>
         <h1>${esc(titlu)}</h1>
         <div class="doc-meta">${stare(d.stare)}<span>${data}</span>${d.versiune > 1 ? `<span>versiunea ${d.versiune}</span>` : ''}</div>
         <dl class="fise">
