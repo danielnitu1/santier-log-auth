@@ -244,7 +244,7 @@
   // Ce face Claude în timp ce cheamă o unealtă, spus pe înțelesul omului.
   const UNELTE = {
     proiecte_lista: 'caut proiectele', proiect_creeaza: 'creez proiectul', proiect_modifica: 'modific proiectul',
-    obiect_adauga: 'adaug obiectul', obiect_modifica: 'modific obiectul', persoane_seteaza: 'salvez responsabilii',
+    tipuri_proiect: 'citesc tipurile de proiect', persoane_seteaza: 'salvez responsabilii',
     jurnal_zi_citeste: 'citesc jurnalul', jurnal_zi_salveaza: 'salvez ciorna jurnalului', jurnal_zi_emite: 'emit ziua de jurnal',
     jurnal_export: 'pregătesc fișierul jurnalului', pv_citeste: 'citesc registrul PV', pv_salveaza: 'salvez ciorna PV-ului',
     pv_emite: 'emit PV-ul', registru_export: 'pregătesc registrul Excel',
@@ -293,14 +293,14 @@
     if (!user) return arata('ecran-login')
     const [{ data: membri }, { data: lc, error }, { data: limita }] = await Promise.all([
       supabase.from('membri').select('firme ( nume )').eq('user_id', user.id),
-      supabase.from('proiecte').select('id, nume, beneficiar').order('modificat_la', { ascending: false }),
+      supabase.from('proiecte').select('id, nume, tip_proiect, date, tipuri_proiect ( nume )').order('modificat_la', { ascending: false }),
       supabase.from('limite_chat').select('limita_tokeni, tokeni_folositi').eq('user_id', user.id).maybeSingle(),
     ])
     $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || user.email
     proiecte = lc ?? []
     const sageata = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
     $('proiecte').innerHTML = error ? `<p class="eroare">${esc(error.message)}</p>`
-      : proiecte.length ? proiecte.map((l) => `<button class="proiect" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong>${l.beneficiar ? `<span>${esc(l.beneficiar)}</span>` : ''}</div>${sageata}</button>`).join('')
+      : proiecte.length ? proiecte.map((l) => `<button class="proiect" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong>${(() => { const sub = [l.tipuri_proiect?.nume, ...Object.values(l.date ?? {})].filter(Boolean).slice(0, 2).join(' · '); return sub ? `<span>${esc(sub)}</span>` : '' })()}</div>${sageata}</button>`).join('')
       : '<div class="gol">Nu ai încă proiecte. Cere adminului firmei să te adauge.</div>'
     arataLimita(limita)
     const ultima = memorie.get('santier-log:proiect')

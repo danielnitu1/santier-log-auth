@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Cartea Tehnică · santier-log</title>
+<title>santier-log</title>
 <style>
-  /* Layout: bară sus cu firma; stânga proiectele; dreapta Cartea Tehnică a proiectului ales, pe secțiuni ca dosarul fizic. */
+  /* Layout: bară sus cu firma; stânga proiectele; dreapta documentele proiectului ales. */
   :root {
     --bg: #f6f5f2; --panel: #ffffff; --ink: #1f1e1b; --muted: #6b6a66; --faint: #9a988f;
     --line: #e4e2dc; --hover: #f0eee9; --accent: #c2410c; --accent-soft: #fdebe1;
@@ -57,7 +57,20 @@
 
   .app { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: calc(100vh - 50px); }
   aside { border-right: 1px solid var(--line); padding: 16px 10px; background: var(--panel); }
-  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); margin: 0 6px 8px; font-weight: 600; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); margin: 0; font-weight: 600; }
+  .aside-cap { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 6px 8px; }
+  .nou-btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 4px 10px; font-size: 13px; cursor: pointer; color: var(--accent); font-weight: 600; }
+  .nou-btn:hover { border-color: var(--accent); }
+  /* Fereastra Proiect nou: întâi tipul, apoi câmpurile lui. */
+  .tipuri-alegere { display: grid; gap: 8px; }
+  .tip-card { display: grid; gap: 2px; text-align: left; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); cursor: pointer; }
+  .tip-card:hover { border-color: var(--accent); }
+  .tip-card strong { font-size: 15px; }
+  .tip-card span { color: var(--muted); font-size: 13px; }
+  .butoane { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .butoane .btn { width: auto; }
+  .camp-obligatoriu { color: var(--accent); }
+  select.camp { width: 100%; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px; }
   .proiect-btn { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 9px 10px; cursor: pointer; }
   .proiect-btn:hover { background: var(--hover); }
   .proiect-btn[aria-current="true"] { background: var(--accent-soft); }
@@ -77,11 +90,11 @@
   .setari-btn { flex: 0 0 auto; min-height: 36px; padding: 6px 12px; font-size: 14px; margin-top: 2px; }
 
   /* Fereastra Setări proiect: centrată pe calculator, pe tot ecranul pe telefon. */
-  dialog#setari {
+  dialog#setari, dialog#nou {
     width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; overflow: auto;
     border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink);
   }
-  dialog#setari::backdrop { background: rgba(0, 0, 0, .45); }
+  dialog#setari::backdrop, dialog#nou::backdrop { background: rgba(0, 0, 0, .45); }
   .setari-cap {
     position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px; background: var(--panel); border-bottom: 1px solid var(--line);
@@ -97,7 +110,7 @@
   #form-detalii .btn { margin-top: 2px; }
   .sigle h3 { margin: 0 0 4px; font-size: 15px; }
   @media (max-width: 760px) {
-    dialog#setari { width: 100vw; max-width: 100vw; height: 100%; max-height: 100%; margin: 0; border-radius: 0; border: 0; }
+    dialog#setari, dialog#nou { width: 100vw; max-width: 100vw; height: 100%; max-height: 100%; margin: 0; border-radius: 0; border: 0; }
   }
   .sigle-locuri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
   .sigla-loc { display: grid; gap: 6px; min-width: 0; }
@@ -170,7 +183,6 @@
   .descarca { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; white-space: nowrap; }
   .descarca:hover { border-color: var(--accent); color: var(--accent); }
 
-  .obiect { display: grid; gap: 12px; }
 
   /* Vederea unui document, deschisă din codul QR. */
   .app.doc-vedere { grid-template-columns: 1fr; }
@@ -219,12 +231,12 @@
   details.grup-wip > summary .nume small { display: block; color: var(--muted); font-size: 12px; }
   details.grup-wip .lista { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
   @media (prefers-reduced-motion: reduce) { details.grup-wip > summary::after { transition: none; } }
-  .obiect > h3 { margin: 0; font-size: 16px; }
 
   @media (max-width: 760px) {
     .app { grid-template-columns: 1fr; }
     aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 0; }
     aside h2 { display: none; }
+    .aside-cap { margin: 0 16px 8px; justify-content: flex-end; }
     #proiecte {
       display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity;
       padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
@@ -291,7 +303,7 @@
     <div class="dreapta"><span class="email" id="utilizator"></span><button id="iesire" type="button">Ieși</button></div>
   </header>
   <div class="app">
-    <aside aria-label="Proiecte"><h2>Proiecte</h2><div id="proiecte"></div></aside>
+    <aside aria-label="Proiecte"><div class="aside-cap"><h2>Proiecte</h2><button class="nou-btn" id="proiect-nou" type="button">+ Proiect nou</button></div><div id="proiecte"></div></aside>
     <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă proiectele…</p></div></main>
   </div>
 </div>
@@ -306,17 +318,37 @@
     <p class="ajutor">Apar în antetul fiecărui document nou, exact cum le scrii aici.</p>
     <label for="d-nume">Denumirea proiectului</label>
     <input id="d-nume" name="nume" required>
-    <label for="d-antreprenor">Antreprenor</label>
-    <input id="d-antreprenor" name="antreprenor">
-    <label for="d-beneficiar">Beneficiar</label>
-    <input id="d-beneficiar" name="beneficiar">
-    <label for="d-santier">Șantier / obiectiv</label>
-    <input id="d-santier" name="santier_obiectiv">
+    <div id="d-campuri"></div>
     <button class="btn" type="submit">Salvează detaliile</button>
     <p class="stare-incarcare" id="stare-detalii" role="status"></p>
   </form>
   <div class="setari-sectiune" id="setari-sigle"></div>
   <p class="ajutor setari-nota">Documentele deja emise rămân cum erau. Ca să preia modificările, le re-emiți din Claude.</p>
+</dialog>
+
+<dialog id="nou" aria-labelledby="nou-titlu">
+  <div class="setari-cap">
+    <h2 id="nou-titlu">Proiect nou</h2>
+    <button class="inchide" type="button" id="nou-inchide" aria-label="Închide">✕</button>
+  </div>
+  <section class="setari-sectiune" id="nou-pas-tip">
+    <h3>Ce fel de proiect?</h3>
+    <p class="ajutor">Tipul decide ce câmpuri are proiectul și ce documente poți face în el.</p>
+    <div class="tipuri-alegere" id="nou-tipuri"></div>
+  </section>
+  <form class="setari-sectiune" id="nou-form" hidden>
+    <h3 id="nou-tip-ales"></h3>
+    <p class="ajutor">Câmpurile cu <span class="camp-obligatoriu">*</span> sunt obligatorii. Le poți schimba oricând din Setări.</p>
+    <div id="nou-firma"></div>
+    <label for="nou-nume">Denumirea proiectului <span class="camp-obligatoriu">*</span></label>
+    <input id="nou-nume" required>
+    <div id="nou-campuri"></div>
+    <div class="butoane">
+      <button class="link" type="button" id="nou-inapoi">← Alt tip</button>
+      <button class="btn" type="submit">Creează proiectul</button>
+    </div>
+    <p class="stare-incarcare" id="nou-stare" role="status"></p>
+  </form>
 </dialog>
 
 <script type="module">
@@ -403,6 +435,15 @@
 
   let proiecte = []
   let selectata = null
+  let tipuri = [] // tipurile de proiect, cu câmpurile lor (tabelul tipuri_proiect)
+  let firmeEditabile = [] // { id, nume }: firmele în care utilizatorul poate crea proiecte
+  const tipul = (l) => tipuri.find((t) => t.cod === l?.tip_proiect)
+  const valoare = (l, cheie) => String(l?.date?.[cheie] ?? '')
+  // Câmpurile unui tip, ca formular: o etichetă și un input pentru fiecare.
+  const campuriFormular = (tip, l, prefix) => (tip?.campuri ?? []).map((c) => `
+    <label for="${prefix}-${esc(c.cheie)}">${esc(c.eticheta)}${c.obligatoriu ? ' <span class="camp-obligatoriu">*</span>' : ''}</label>
+    <input id="${prefix}-${esc(c.cheie)}" data-cheie="${esc(c.cheie)}" ${c.tip === 'data' ? 'type="date"' : c.tip === 'numar' ? 'inputmode="decimal"' : ''} ${c.obligatoriu ? 'required' : ''} value="${esc(valoare(l, c.cheie))}"${c.ajutor ? ` placeholder="${esc(c.ajutor)}"` : ''}>`).join('')
+  const valoriFormular = (rad) => Object.fromEntries([...rad.querySelectorAll('input[data-cheie]')].map((i) => [i.dataset.cheie, i.value.trim()]).filter(([, v]) => v))
 
   // ---------- Login ----------
   let emailCurent = ''
@@ -433,10 +474,14 @@
     $('ecran-login').hidden = true; $('ecran-app').hidden = false
     $('utilizator').textContent = user.email
 
-    const [{ data: membri }, { data: lc, error }] = await Promise.all([
-      supabase.from('membri').select('rol, firme ( nume )').eq('user_id', user.id),
-      supabase.from('proiecte').select('id, firma_id, nume, antreprenor, beneficiar, santier_obiectiv, tip, sigle, obiecte ( id, cod, nume, text_antet, ordine ), persoane_proiect ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
+    const [{ data: membri }, { data: lc, error }, { data: tp }] = await Promise.all([
+      supabase.from('membri').select('firma_id, rol, firme ( nume )').eq('user_id', user.id),
+      supabase.from('proiecte').select('id, firma_id, nume, tip_proiect, date, sigle, persoane_proiect ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
+      supabase.from('tipuri_proiect').select('cod, nume, descriere, campuri').order('ordine'),
     ])
+    tipuri = tp ?? []
+    firmeEditabile = (membri ?? []).filter((m) => m.rol === 'admin' || m.rol === 'editor').map((m) => ({ id: m.firma_id, nume: m.firme?.nume ?? '' }))
+    $('proiect-nou').hidden = !firmeEditabile.length
     $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || '—'
     if (error) { $('pagina').innerHTML = `<p class="eroare">${esc(error.message)}</p>`; return }
     proiecte = lc ?? []
@@ -449,20 +494,21 @@
 
   function deseneazaProiecte() {
     $('proiecte').innerHTML = proiecte.length
-      ? proiecte.map((l) => `<button class="proiect-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span>${esc(l.beneficiar || l.santier_obiectiv || '')}</span></button>`).join('')
-      : '<p style="color:var(--muted);padding:0 6px">Niciun proiect încă. Creează-l din Claude.</p>'
+      ? proiecte.map((l) => `<button class="proiect-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span>${esc([tipul(l)?.nume, ...(tipul(l)?.campuri ?? []).map((c) => valoare(l, c.cheie))].filter(Boolean).slice(0, 2).join(' · '))}</span></button>`).join('')
+      : '<p style="color:var(--muted);padding:0 6px">Niciun proiect încă. Apasă „+ Proiect nou”.</p>'
   }
   $('proiecte').addEventListener('click', (ev) => { const b = ev.target.closest('.proiect-btn'); if (b) alege(b.dataset.id) })
 
   async function alege(id) {
     selectata = proiecte.find((l) => l.id === id)
     for (const b of document.querySelectorAll('.proiect-btn')) b.setAttribute('aria-current', String(b.dataset.id === id))
-    if (!selectata) { $('pagina').innerHTML = '<p style="color:var(--muted)">Niciun proiect. Creează-l din Claude: <q>Creează proiectul …</q></p>'; return }
+    if (!selectata) { document.title = 'santier-log'; $('pagina').innerHTML = '<p style="color:var(--muted)">Niciun proiect încă. Apasă „+ Proiect nou” sau cere-i lui Claude să creeze unul.</p>'; return }
     history.replaceState(null, '', '#' + id)
+    document.title = `${selectata.nume} · santier-log`
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentele…</p>'
     const [{ data: zile }, { data: docs }] = await Promise.all([
       supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx, fisiere_semnate').eq('proiect_id', id).order('data', { ascending: false }),
-      supabase.from('documente').select('id, obiect_id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('proiect_id', id),
+      supabase.from('documente').select('id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('proiect_id', id),
     ])
     deseneazaProiectul(selectata, zile ?? [], docs ?? [])
   }
@@ -535,7 +581,7 @@
       ['Categorie', (d) => esc(d.categorie || '')], ['Descriere', (d) => esc(d.descriere || ''), 'lat'],
       colStare, colGenerat, ['Semnat', semnat('p')],
     ], reg) : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
-    return t + '<p class="sfat">Excelul registrului îl ceri din Claude: <q>Dă-mi registrul obiectului în Excel.</q></p>'
+    return t + '<p class="sfat">Excelul registrului îl ceri din Claude: <q>Dă-mi registrul în Excel.</q></p>'
   }
 
   // Un grup întreg „în lucru” se strânge într-un rând care se deschide la atingere.
@@ -606,9 +652,7 @@
     const l = selectata
     if (!l) return
     $('d-nume').value = l.nume || ''
-    $('d-antreprenor').value = l.antreprenor || ''
-    $('d-beneficiar').value = l.beneficiar || ''
-    $('d-santier').value = l.santier_obiectiv || ''
+    $('d-campuri').innerHTML = campuriFormular(tipul(l), l, 'd')
     $('stare-detalii').textContent = ''
     deseneazaSigleSetari()
     $('setari').showModal()
@@ -622,12 +666,7 @@
     ev.preventDefault()
     const b = ev.submitter; b.disabled = true
     const stareEl = $('stare-detalii'); stareEl.classList.remove('eroare'); stareEl.textContent = 'Se salvează…'
-    const detalii = {
-      nume: $('d-nume').value.trim(),
-      antreprenor: $('d-antreprenor').value.trim() || null,
-      beneficiar: $('d-beneficiar').value.trim() || null,
-      santier_obiectiv: $('d-santier').value.trim() || null,
-    }
+    const detalii = { nume: $('d-nume').value.trim(), date: valoriFormular($('d-campuri')) }
     const { error } = await supabase.from('proiecte').update(detalii).eq('id', selectata.id)
     b.disabled = false
     if (error) {
@@ -636,6 +675,7 @@
       return
     }
     Object.assign(selectata, detalii)
+    document.title = `${selectata.nume} · santier-log`
     deseneazaProiecte()
     stareEl.textContent = 'Salvat.'
   })
@@ -684,34 +724,31 @@
     `<details class="grup"${deschis ? ' open' : ''}><summary><i class="chevron" aria-hidden="true"></i><h2>${titlu}${mic != null ? ` <small>${mic}</small>` : ''}</h2></summary>${continut}</details>`
 
   function vederePeTip({ l, zile, docs }) {
-    const obiecte = [...(l.obiecte ?? [])].sort((a, b) => a.ordine - b.ordine)
-    const obiecteHtml = obiecte.map((o) => {
-      const aleObiectului = docs.filter((d) => d.obiect_id === o.id)
-      const dinTip = (tip) => aleObiectului.filter((d) => d.tip === tip)
-      return `<div class="obiect">
-        ${obiecte.length > 1 || l.tip === 'cu_obiecte' ? `<h3>OB. ${esc(o.cod)} — ${esc(o.nume)}</h3>` : ''}
-        ${grup('Registrul obiectului', null, `<div class="lista">
-          ${rand({ cod: 'REG', nume: 'Registrul procese verbale', desc: 'ordinea documentelor din dosar' }, { activ: true, numar: aleObiectului.filter((d) => d.pozitie != null).length, corp: corpRegistru(aleObiectului) })}
-        </div>`)}
-        ${grup('PV construcții', PV_CONSTRUCTII.length, `<div class="lista">
-          ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) }) : rand(t)).join('')}
-        </div>`)}
-        ${grup('PV instalații', PV_INSTALATII.length, `<div class="lista">
-          ${PV_INSTALATII.filter((t) => t.activ).map((t) => rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) })).join('')}
-        </div>${grupInLucru('Celelalte PV de instalații', PV_INSTALATII.filter((t) => !t.activ))}`)}
-      </div>`
-    }).join('')
+    // Catalogul de mai jos e al șantierului. Celelalte tipuri primesc catalogul lor la pasul următor (documente legate de tipuri).
+    if (l.tip_proiect !== 'santier') {
+      return `<p class="gol">Documentele pentru tipul ${esc(tipul(l)?.nume ?? l.tip_proiect)} vin în pasul următor. Până atunci, folosește „Pe luni” sau „Toate”.</p>`
+    }
+    const dinTip = (tip) => docs.filter((d) => d.tip === tip)
     const documenteHtml = `<div class="grupuri-wip">${Object.entries(DOCUMENTE_PROIECT).map(([cat, lista]) => grupInLucru(cat, lista)).join('')}</div>`
     return `
       ${grup('Jurnale', 'pentru tot proiectul', `<div class="lista">
         ${JURNALE.map((t) => t.activ ? rand(t, { activ: true, numar: zile.length, corp: corpJurnal(zile) }) : rand(t)).join('')}
       </div>`)}
-      ${obiecteHtml}
+      ${grup('Registrul proiectului', null, `<div class="lista">
+        ${rand({ cod: 'REG', nume: 'Registrul procese verbale', desc: 'ordinea documentelor din dosar' }, { activ: true, numar: docs.filter((d) => d.pozitie != null).length, corp: corpRegistru(docs) })}
+      </div>`)}
+      ${grup('PV construcții', PV_CONSTRUCTII.length, `<div class="lista">
+        ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) }) : rand(t)).join('')}
+      </div>`)}
+      ${grup('PV instalații', PV_INSTALATII.length, `<div class="lista">
+        ${PV_INSTALATII.filter((t) => t.activ).map((t) => rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) })).join('')}
+      </div>${grupInLucru('Celelalte PV de instalații', PV_INSTALATII.filter((t) => !t.activ))}`)}
       ${grup('Documentele proiectului', `${Object.values(DOCUMENTE_PROIECT).flat().length} modele, pe categorii`, documenteHtml)}
       ${grup('Dosarul complet', null, `<div class="lista">
         ${rand({ cod: 'CTC', nume: 'Cartea Tehnică completă', desc: 'toate documentele, în ordinea din borderou, într-un singur fișier' })}
       </div>`)}`
   }
+
 
   // Jurnalele și PV-urile generate, într-o singură listă, cele mai noi primele.
   function documenteGenerate({ zile, docs }) {
@@ -797,15 +834,14 @@
       <div class="antet">
         <div class="titlu-rand"><h1>${esc(l.nume)}</h1><button class="descarca setari-btn" type="button" id="deschide-setari">⚙ Setări</button></div>
         <dl>
-          <div><dt>Antreprenor</dt><dd>${esc(l.antreprenor || '—')}</dd></div>
-          <div><dt>Beneficiar</dt><dd>${esc(l.beneficiar || '—')}</dd></div>
-          <div><dt>Șantier / obiectiv</dt><dd>${esc(l.santier_obiectiv || '—')}</dd></div>
+          <div><dt>Tip</dt><dd>${esc(tipul(l)?.nume ?? l.tip_proiect)}</dd></div>
+          ${(tipul(l)?.campuri ?? []).filter((c) => c.in_antet || valoare(l, c.cheie)).map((c) => `<div><dt>${esc(c.eticheta)}</dt><dd>${esc(valoare(l, c.cheie) || '—')}</dd></div>`).join('')}
         </dl>
         ${persoane.length ? `<div class="persoane">${persoane.map((p) => `<span>${esc(ROLURI[p.rol] ?? p.rol)}: ${esc(p.nume)}</span>`).join('')}</div>` : ''}
       </div>
 
       <div class="progres">
-        <div class="rand"><strong>Cartea Tehnică a Construcției</strong><span>${nrDocs} ${nrDocs === 1 ? 'document generat' : 'documente generate'}</span></div>
+        <div class="rand"><strong>Documente</strong><span>${nrDocs} ${nrDocs === 1 ? 'document generat' : 'documente generate'}</span></div>
         <div class="bara-progres" title="${activeTipuri} din ${totalTipuri} tipuri de documente disponibile"><i style="width:${Math.max(3, Math.round(activeTipuri / totalTipuri * 100))}%"></i></div>
         <div class="legenda"><span>${activeTipuri} din ${totalTipuri} tipuri de documente disponibile azi</span><span>${eticheta(true)} se face din Claude</span><span>${eticheta(false)} urmează</span></div>
       </div>
@@ -953,8 +989,8 @@
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentul…</p>'
     const tabelDoc = dec.fel === 'j' ? 'jurnal_zile' : 'documente'
     const coloane = dec.fel === 'j'
-      ? '*, proiecte ( id, nume, antreprenor, beneficiar, santier_obiectiv )'
-      : '*, proiecte ( id, nume, antreprenor, beneficiar, santier_obiectiv ), obiecte ( cod, nume )'
+      ? '*, proiecte ( id, nume, tip_proiect, date )'
+      : '*, proiecte ( id, nume, tip_proiect, date )'
     const { data: d, error } = await supabase.from(tabelDoc).select(coloane).eq('id', dec.id).maybeSingle()
     if (error || !d) {
       $('pagina').innerHTML = `<div class="doc-card"><h1>Documentul nu e disponibil</h1>
@@ -971,14 +1007,14 @@
     const data = dataRo(eJurnal ? d.data : d.data_doc)
 
     $('pagina').innerHTML = `
-      <p class="inapoi"><a href="./#${esc(l.id)}">← Cartea Tehnică · ${esc(l.nume)}</a></p>
+      <p class="inapoi"><a href="./#${esc(l.id)}">← ${esc(l.nume)}</a></p>
       <div class="doc-card">
-        <div class="doc-tip">${eJurnal ? 'Zi din jurnalul de șantier' : 'Proces verbal'}${!eJurnal && d.obiecte ? ` · OB. ${esc(d.obiecte.cod)}` : ''}</div>
+        <div class="doc-tip">${eJurnal ? 'Zi din jurnalul de șantier' : 'Proces verbal'}</div>
         <h1>${esc(titlu)}</h1>
         <div class="doc-meta">${stare(d.stare)}<span>${data}</span>${d.versiune > 1 ? `<span>versiunea ${d.versiune}</span>` : ''}</div>
         <dl class="fise">
           <div><dt>Proiectul</dt><dd>${esc(l.nume)}</dd></div>
-          <div><dt>Beneficiar</dt><dd>${esc(l.beneficiar || '—')}</dd></div>
+          ${(tipul(l)?.campuri ?? []).filter((c) => valoare(l, c.cheie)).slice(0, 2).map((c) => `<div><dt>${esc(c.eticheta)}</dt><dd>${esc(valoare(l, c.cheie))}</dd></div>`).join('')}
         </dl>
       </div>
 
@@ -1019,6 +1055,57 @@
       if (error) { b.textContent = 'Eroare'; return }
       location.href = data.signedUrl
     }
+  })
+
+  // ---------- Proiect nou: întâi tipul, apoi câmpurile lui ----------
+  let tipNou = null
+  function deschideNou() {
+    tipNou = null
+    $('nou-tipuri').innerHTML = tipuri.map((t) => `<button class="tip-card" type="button" data-tip="${esc(t.cod)}"><strong>${esc(t.nume)}</strong>${t.descriere ? `<span>${esc(t.descriere)}</span>` : ''}</button>`).join('')
+    $('nou-pas-tip').hidden = false
+    $('nou-form').hidden = true
+    $('nou').showModal()
+  }
+  function alegeTipNou(cod) {
+    tipNou = tipuri.find((t) => t.cod === cod)
+    if (!tipNou) return
+    $('nou-tip-ales').textContent = `Proiect de tip ${tipNou.nume}`
+    $('nou-firma').innerHTML = firmeEditabile.length > 1
+      ? `<label for="nou-firma-sel">Firma</label><select class="camp" id="nou-firma-sel">${firmeEditabile.map((f) => `<option value="${esc(f.id)}">${esc(f.nume)}</option>`).join('')}</select>`
+      : ''
+    $('nou-nume').value = ''
+    $('nou-campuri').innerHTML = campuriFormular(tipNou, null, 'n')
+    $('nou-stare').textContent = ''
+    $('nou-stare').classList.remove('eroare')
+    $('nou-pas-tip').hidden = true
+    $('nou-form').hidden = false
+    $('nou-nume').focus()
+  }
+  $('proiect-nou').addEventListener('click', deschideNou)
+  $('nou-inchide').addEventListener('click', () => $('nou').close())
+  $('nou').addEventListener('click', (ev) => { if (ev.target === $('nou')) $('nou').close() }) // clic pe fundal
+  $('nou-tipuri').addEventListener('click', (ev) => { const b = ev.target.closest('.tip-card'); if (b) alegeTipNou(b.dataset.tip) })
+  $('nou-inapoi').addEventListener('click', () => { $('nou-pas-tip').hidden = false; $('nou-form').hidden = true })
+  $('nou-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault()
+    const b = ev.submitter
+    b.disabled = true
+    const st = $('nou-stare')
+    st.classList.remove('eroare')
+    st.textContent = 'Se creează…'
+    const firma_id = $('nou-firma-sel')?.value ?? firmeEditabile[0]?.id
+    const { data, error } = await supabase.from('proiecte')
+      .insert({ firma_id, nume: $('nou-nume').value.trim(), tip_proiect: tipNou.cod, date: valoriFormular($('nou-campuri')) })
+      .select('id').single()
+    b.disabled = false
+    if (error) {
+      st.textContent = /row-level|permission/i.test(error.message) ? 'Contul tău nu poate crea proiecte în firma asta.' : error.message
+      st.classList.add('eroare')
+      return
+    }
+    $('nou').close()
+    history.replaceState(null, '', '#' + data.id)
+    await porneste()
   })
 
   porneste()
