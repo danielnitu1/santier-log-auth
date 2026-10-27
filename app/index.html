@@ -233,7 +233,8 @@
   @media (prefers-reduced-motion: reduce) { details.grup-wip > summary::after { transition: none; } }
 
   @media (max-width: 760px) {
-    .app { grid-template-columns: 1fr; }
+    .app { grid-template-columns: minmax(0, 1fr); }
+    aside, main { min-width: 0; }
     aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 0; }
     aside h2 { display: none; }
     .aside-cap { margin: 0 16px 8px; justify-content: flex-end; }
@@ -664,7 +665,7 @@
 
   $('form-detalii').addEventListener('submit', async (ev) => {
     ev.preventDefault()
-    const b = ev.submitter; b.disabled = true
+    const b = ev.submitter ?? ev.target.querySelector('[type=submit]'); b.disabled = true
     const stareEl = $('stare-detalii'); stareEl.classList.remove('eroare'); stareEl.textContent = 'Se salvează…'
     const detalii = { nume: $('d-nume').value.trim(), date: valoriFormular($('d-campuri')) }
     const { error } = await supabase.from('proiecte').update(detalii).eq('id', selectata.id)
@@ -1088,7 +1089,7 @@
   $('nou-inapoi').addEventListener('click', () => { $('nou-pas-tip').hidden = false; $('nou-form').hidden = true })
   $('nou-form').addEventListener('submit', async (ev) => {
     ev.preventDefault()
-    const b = ev.submitter
+    const b = ev.submitter ?? ev.target.querySelector('[type=submit]')
     b.disabled = true
     const st = $('nou-stare')
     st.classList.remove('eroare')
