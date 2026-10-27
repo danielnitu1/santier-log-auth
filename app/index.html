@@ -230,6 +230,7 @@
   details.grup-wip > summary:hover { background: var(--hover); }
   details.grup-wip > summary .nume small { display: block; color: var(--muted); font-size: 12px; }
   details.grup-wip .lista { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+  .lista + details.grup-wip { margin-top: 8px; }
   @media (prefers-reduced-motion: reduce) { details.grup-wip > summary::after { transition: none; } }
 
   @media (max-width: 760px) {
@@ -360,76 +361,19 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
   const dataRo = (iso) => iso ? iso.slice(0, 10).split('-').reverse().join('.') : ''
 
-  // Catalogul complet al Cărții Tehnice. `activ` = îl generează santier-log azi; restul e în lucru.
-  const JURNALE = [
-    { cod: 'JS-01', nume: 'Jurnal de șantier', desc: 'fișa zilnică', activ: 'jurnal' },
-    { cod: 'JS-02', nume: 'Condică de betoane', desc: 'jurnal continuu' },
-    { cod: 'JS-03', nume: 'Fișă așternere mixturi asfaltice', desc: 'fișe pe zile' },
-    { cod: 'JS-04', nume: 'Borderou', desc: 'cuprinsul Cărții Tehnice' },
-  ]
-  const PV_CONSTRUCTII = [
-    { cod: 'PC-01', nume: 'PV de trasare' },
-    { cod: 'PC-02', nume: 'PV verificare cotă fundare' },
-    { cod: 'PC-03', nume: 'PV recepție calitativă' },
-    { cod: 'PC-04', nume: 'PV recepție materiale' },
-    { cod: 'PC-05', nume: 'PV lucrări ascunse', activ: 'pv_lucrari_ascunse' },
-    { cod: 'PC-06', nume: 'PV aspect beton după decofrare' },
-    { cod: 'PC-07', nume: 'PV natură teren fundare' },
-    { cod: 'PC-08', nume: 'PV trasabilitate armătură' },
-    { cod: 'PC-09', nume: 'Document propriu încărcat', desc: 'PDF scanat, certificat, buletin' },
-  ]
-  const ACTIVE_INSTALATII = {
-    'PV probă presiune la rece': 'pv_proba_presiune_rece',
-    'PV încercare prize de pământ': 'pv_prize_pamant',
-    'PV etanșeitate conducte interioare canalizare': 'pv_etanseitate_canalizare_interioara',
-  }
-  const PV_INSTALATII = [
-    'PV probă presiune la cald', 'PV probă presiune la rece', 'PV continuitate și izolație conductor',
-    'PV încercare prize de pământ', 'PV predare-primire front de lucru (instalații)', 'PV probă funcționare a instalației',
-    'PV punere în funcțiune (funcționalitate echipament)', 'PV etanșeitate conducte interioare canalizare',
-    'PV etanșeitate conducte exterioare canalizare', 'PV etanșeitate tuburi/țevi',
-    'PV etanșeitate canale de aer ventilare-climatizare', 'PV etanșeitate canale cu nivel liber',
-  ].map((nume, i) => ({ cod: `PI-${String(i + 1).padStart(2, '0')}`, nume, activ: ACTIVE_INSTALATII[nume] }))
-  const DOCUMENTE_PROIECT = {
-    'Documente RTE': ['Referat de prezentare RTE'],
-    'Diriginte de șantier': ['Dispoziție de oprire a execuției lucrărilor', 'Raport de neconformitate',
-      'Referatul dirigintelui de șantier (recepția la terminare)', 'Înștiințare I.S.C. — oprirea lucrărilor (24 de ore)'],
-    'Executant / Șef de șantier': ['Notificare decalare termen de remediere', 'Notificare reluarea lucrărilor',
-      'Notificare suspendarea lucrărilor', 'Notificare termen de recepție stabilit de executant',
-      'Propunere de modificare de detaliu a proiectului', 'Reînnoirea cererii de convocare a comisiei de recepție',
-      'Solicitare de clarificări către proiectant'],
-    'Beneficiar / Investitor': ['Convocarea comisiei de recepție', 'Decizie de numire a comisiei de recepție',
-      'PV predare-primire amplasament', 'PV predare-primire construcție către proprietar',
-      'Solicitare desemnare reprezentant în comisia de recepție', 'Somație de remediere către executant',
-      'Înștiințare începerea lucrărilor — I.S.C. (F_A_09)', 'Înștiințare începerea lucrărilor — Primărie (F_A_08)',
-      'Înștiințare încheierea lucrărilor — I.S.C. (F_A_11)', 'Înștiințare încheierea lucrărilor — Primărie (F_A_10)'],
-    'Avize și acorduri': ['Convenție F4 — drept de traversare și acces (DEER)'],
-    'Corespondență și adrese': ['Adresă către I.S.C. — documentele pentru recepție', 'Adresă de înaintare a situației de lucrări',
-      'Adresă de înaintare documente', 'Cerere prelungire autorizație de construire (F_A_02)',
-      'Cerere prelungire termen de execuție (contract)', 'Comunicare terminarea lucrărilor și solicitare recepție',
-      'Comunicarea procesului-verbal de recepție', 'Comunicarea suspendării recepției către executant',
-      'Convocare I.S.C. la fază determinantă', 'Solicitare organizare recepție finală (expirarea garanției)', 'Somație de plată'],
-    'Situații de lucrări': ['Notă de comandă suplimentară (NCS)', 'Notă de renunțare (NR)'],
-    'Securitate și sănătate (SSM)': ['Fișă de instruire colectivă SSM (Anexa 12)'],
-    'Mediu': ['Formular încărcare-descărcare deșeuri nepericuloase (Anexa 3)'],
-    'Recepție la terminarea lucrărilor': ['PV de recepție parțială (Anexa 1)', 'PV de recepție la terminarea lucrărilor (Anexa 2)',
-      'PV de suspendare a recepției la terminare (Anexa 3)'],
-    'Recepție finală': ['PV de recepție finală (Anexa 4)', 'PV de suspendare a recepției finale (Anexa 5)'],
-    'Cartea tehnică a construcției': ['Fișa de date sintetice'],
-  }
-  const TITLURI_PV = {
-    pv_lucrari_ascunse: 'PV lucrări ascunse',
-    pv_proba_presiune_rece: 'PV probă presiune la rece',
-    pv_etanseitate_canalizare_interioara: 'PV etanșeitate canalizare interioară',
-    pv_prize_pamant: 'PV încercare prize de pământ',
-  }
+  // Catalogul documentelor vine din bază (catalog_documente + catalog_tipuri_proiect) și se filtrează după tipul proiectului.
+  // `activ` = santier-log îl generează azi; restul apar „în lucru”. `tip` leagă rândul de documentele generate (documente.tip).
+  let catalog = [] // { cod, categorie, nume, activ, text_pornire, tip, tipuri: [codurile tipurilor de proiect] }
+  const catalogTip = (tipProiect) => catalog.filter((c) => c.tipuri.includes(tipProiect))
+  const titluTip = (tip) => catalog.find((c) => c.tip === tip)?.nume ?? tip
   const SFATURI = {
-    jurnal: 'Spune-i lui Claude: <q>Azi pe [proiect]: 4 dulgheri, cofrare stâlpi axa B 12 mp, macara turn. Mâine turnăm.</q>',
-    pv_proba_presiune_rece: 'Spune-i lui Claude: <q>Fă PV de probă de presiune la rece pentru apa rece de la parter: 9 bar, 2 ore, fără pierderi.</q>',
-    pv_etanseitate_canalizare_interioara: 'Spune-i lui Claude: <q>Fă PV de etanșeitate pentru canalizarea menajeră interioară: umplut cu apă 24 de ore, fără scurgeri.</q>',
-    pv_prize_pamant: 'Spune-i lui Claude: <q>Fă PV de prize de pământ la TG: 2,8 ohmi, sol umed, aparat Megger DET4TC2 seria 101234.</q>',
-    pv_lucrari_ascunse: 'Spune-i lui Claude: <q>Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6, proiectul tehnic 45/2026.</q>',
+    'JS-01': 'Spune-i lui Claude: <q>Azi pe [proiect]: 4 dulgheri, cofrare stâlpi axa B 12 mp, macara turn. Mâine turnăm.</q>',
+    'PI-02': 'Spune-i lui Claude: <q>Fă PV de probă de presiune la rece pentru apa rece de la parter: 9 bar, 2 ore, fără pierderi.</q>',
+    'PI-08': 'Spune-i lui Claude: <q>Fă PV de etanșeitate pentru canalizarea menajeră interioară: umplut cu apă 24 de ore, fără scurgeri.</q>',
+    'PI-04': 'Spune-i lui Claude: <q>Fă PV de prize de pământ la TG: 2,8 ohmi, sol umed, aparat Megger DET4TC2 seria 101234.</q>',
+    'PC-05': 'Spune-i lui Claude: <q>Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6, proiectul tehnic 45/2026.</q>',
   }
+  const sfat = (c) => SFATURI[c.cod] ?? (c.text_pornire ? `Spune-i lui Claude: <q>${esc(c.text_pornire)}…</q>` : '')
   const ROLURI = { manager_proiect: 'Manager proiect', sef_santier: 'Șef șantier', responsabil_cq: 'CQ', supervizor: 'Supervizor',
     rte: 'RTE', diriginte: 'Diriginte', proiectant: 'Proiectant', reprezentant_beneficiar: 'Repr. beneficiar' }
   const STARI = { ciorna: 'ciornă', emis: 'emis', semnat: 'semnat', anulat: 'anulat' }
@@ -475,12 +419,14 @@
     $('ecran-login').hidden = true; $('ecran-app').hidden = false
     $('utilizator').textContent = user.email
 
-    const [{ data: membri }, { data: lc, error }, { data: tp }] = await Promise.all([
+    const [{ data: membri }, { data: lc, error }, { data: tp }, { data: cat }] = await Promise.all([
       supabase.from('membri').select('firma_id, rol, firme ( nume )').eq('user_id', user.id),
       supabase.from('proiecte').select('id, firma_id, nume, tip_proiect, date, sigle, persoane_proiect ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
       supabase.from('tipuri_proiect').select('cod, nume, descriere, campuri').order('ordine'),
+      supabase.from('catalog_documente').select('cod, categorie, ordine_categorie, nume, ordine, activ, text_pornire, tip, catalog_tipuri_proiect ( tip_proiect )').order('ordine_categorie').order('ordine'),
     ])
     tipuri = tp ?? []
+    catalog = (cat ?? []).map(({ catalog_tipuri_proiect: legaturi, ...c }) => ({ ...c, tipuri: (legaturi ?? []).map((x) => x.tip_proiect) }))
     firmeEditabile = (membri ?? []).filter((m) => m.rol === 'admin' || m.rol === 'editor').map((m) => ({ id: m.firma_id, nume: m.firme?.nume ?? '' }))
     $('proiect-nou').hidden = !firmeEditabile.length
     $('firma').textContent = (membri ?? []).map((m) => m.firme?.nume).filter(Boolean).join(', ') || '—'
@@ -563,22 +509,22 @@
       ['Nr.', (z) => z.nr, 'titlu-card'], ['Data', (z) => dataRo(z.data), 'titlu-card'], colStare,
       ['Versiune', (z) => z.versiune || '—'], colGenerat, ['Semnat', semnat('j')],
     ], zile) : '<p class="gol">Nicio zi încă.</p>'
-    return t + `<p class="sfat">${SFATURI.jurnal}</p>` + SFAT_SEMNAT
+    return t + `<p class="sfat">${SFATURI['JS-01']}</p>` + SFAT_SEMNAT
   }
 
-  function corpPv(lista, tip) {
+  function corpPv(lista, c) {
     const t = lista.length ? tabel([
       ['Nr. PV', (d) => d.nr_pv ?? '—', 'titlu-card'], ['Data', (d) => dataRo(d.data_doc), 'titlu-card'],
       ['Descriere', (d) => esc(d.descriere || ''), 'lat'], colStare, colGenerat, ['Semnat', semnat('p')],
     ], lista) : '<p class="gol">Niciun PV încă.</p>'
-    return t + `<p class="sfat">${SFATURI[tip] ?? ''}</p>` + SFAT_SEMNAT
+    return t + (sfat(c) ? `<p class="sfat">${sfat(c)}</p>` : '') + SFAT_SEMNAT
   }
 
   function corpRegistru(lista) {
     const reg = lista.filter((d) => d.pozitie != null).sort((a, b) => a.pozitie - b.pozitie)
     const t = reg.length ? tabel([
       ['Nr. crt.', (d) => d.pozitie, 'titlu-card'], ['Nr. PV', (d) => d.nr_pv, 'titlu-card'], ['Data', (d) => dataRo(d.data_doc)],
-      ['Document', (d) => esc(TITLURI_PV[d.tip] ?? d.tip)],
+      ['Document', (d) => esc(titluTip(d.tip))],
       ['Categorie', (d) => esc(d.categorie || '')], ['Descriere', (d) => esc(d.descriere || ''), 'lat'],
       colStare, colGenerat, ['Semnat', semnat('p')],
     ], reg) : '<p class="gol">Registrul e gol. Documentele intră aici când sunt emise.</p>'
@@ -724,38 +670,47 @@
   const grup = (titlu, mic, continut, deschis = true) =>
     `<details class="grup"${deschis ? ' open' : ''}><summary><i class="chevron" aria-hidden="true"></i><h2>${titlu}${mic != null ? ` <small>${mic}</small>` : ''}</h2></summary>${continut}</details>`
 
-  function vederePeTip({ l, zile, docs }) {
-    // Catalogul de mai jos e al șantierului. Celelalte tipuri primesc catalogul lor la pasul următor (documente legate de tipuri).
-    if (l.tip_proiect !== 'santier') {
-      return `<p class="gol">Documentele pentru tipul ${esc(tipul(l)?.nume ?? l.tip_proiect)} vin în pasul următor. Până atunci, folosește „Pe luni” sau „Toate”.</p>`
-    }
-    const dinTip = (tip) => docs.filter((d) => d.tip === tip)
-    const documenteHtml = `<div class="grupuri-wip">${Object.entries(DOCUMENTE_PROIECT).map(([cat, lista]) => grupInLucru(cat, lista)).join('')}</div>`
-    return `
-      ${grup('Jurnale', 'pentru tot proiectul', `<div class="lista">
-        ${JURNALE.map((t) => t.activ ? rand(t, { activ: true, numar: zile.length, corp: corpJurnal(zile) }) : rand(t)).join('')}
-      </div>`)}
-      ${grup('Registrul proiectului', null, `<div class="lista">
-        ${rand({ cod: 'REG', nume: 'Registrul procese verbale', desc: 'ordinea documentelor din dosar' }, { activ: true, numar: docs.filter((d) => d.pozitie != null).length, corp: corpRegistru(docs) })}
-      </div>`)}
-      ${grup('PV construcții', PV_CONSTRUCTII.length, `<div class="lista">
-        ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) }) : rand(t)).join('')}
-      </div>`)}
-      ${grup('PV instalații', PV_INSTALATII.length, `<div class="lista">
-        ${PV_INSTALATII.filter((t) => t.activ).map((t) => rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) })).join('')}
-      </div>${grupInLucru('Celelalte PV de instalații', PV_INSTALATII.filter((t) => !t.activ))}`)}
-      ${grup('Documentele proiectului', `${Object.values(DOCUMENTE_PROIECT).flat().length} modele, pe categorii`, documenteHtml)}
-      ${grup('Dosarul complet', null, `<div class="lista">
-        ${rand({ cod: 'CTC', nume: 'Cartea Tehnică completă', desc: 'toate documentele, în ordinea din borderou, într-un singur fișier' })}
-      </div>`)}`
+  // Un rând din catalog: cele gata se deschid cu documentele generate; restul sunt „în lucru”.
+  function randCatalog(c, zile, docs) {
+    if (!c.activ) return rand(c)
+    if (c.cod === 'JS-01') return rand(c, { activ: true, numar: zile.length, corp: corpJurnal(zile) })
+    if (c.cod === 'RG-01') return rand(c, { activ: true, numar: docs.filter((d) => d.pozitie != null).length, corp: corpRegistru(docs) })
+    const ale = docs.filter((d) => d.tip === c.tip)
+    return rand(c, { activ: true, numar: ale.length, corp: corpPv(ale, c) })
   }
+
+  // Pe categorii, din catalogul tipului de proiect. O categorie fără nimic gata stă strânsă.
+  function vederePeTip({ l, zile, docs }) {
+    const lista = catalogTip(l.tip_proiect)
+    if (!lista.length) return `<p class="gol">Tipul ${esc(tipul(l)?.nume ?? l.tip_proiect)} nu are încă documente în catalog.</p>`
+    const categorii = []
+    for (const c of lista) {
+      let g = categorii.at(-1)
+      if (g?.nume !== c.categorie) categorii.push(g = { nume: c.categorie, docs: [] })
+      g.docs.push(c)
+    }
+    // Categoriile fără nimic gata, una după alta, stau strânse într-un singur bloc.
+    const html = []
+    let inLucru = []
+    const golesteInLucru = () => { if (inLucru.length) html.push(`<div class="grupuri-wip">${inLucru.join('')}</div>`); inLucru = [] }
+    for (const g of categorii) {
+      const gata = g.docs.filter((c) => c.activ), restul = g.docs.filter((c) => !c.activ)
+      if (!gata.length) { inLucru.push(grupInLucru(g.nume, g.docs)); continue }
+      golesteInLucru()
+      html.push(grup(g.nume, `${gata.length} din ${g.docs.length} gata`,
+        `<div class="lista">${gata.map((c) => randCatalog(c, zile, docs)).join('')}</div>${restul.length ? grupInLucru(`Celelalte din „${g.nume}”`, restul) : ''}`))
+    }
+    golesteInLucru()
+    return html.join('')
+  }
+
 
 
   // Jurnalele și PV-urile generate, într-o singură listă, cele mai noi primele.
   function documenteGenerate({ zile, docs }) {
     return [
       ...zile.map((z) => ({ fel: 'j', d: z, data: z.data, titlu: `Jurnal de șantier nr. ${z.nr}`, descriere: '' })),
-      ...docs.map((d) => ({ fel: 'p', d, data: d.data_doc, titlu: `${TITLURI_PV[d.tip] ?? d.tip}${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`, descriere: d.descriere || '' })),
+      ...docs.map((d) => ({ fel: 'p', d, data: d.data_doc, titlu: `${titluTip(d.tip)}${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`, descriere: d.descriere || '' })),
     ].sort((a, b) => String(b.data ?? '').localeCompare(String(a.data ?? '')))
   }
   const tabelGenerate = (items) => `<div class="bloc-tabel">${tabel([
@@ -825,8 +780,8 @@
   function deseneazaProiectul(l, zile, docs) {
     const persoane = [...(l.persoane_proiect ?? [])].sort((a, b) => a.ordine - b.ordine)
 
-    const totalTipuri = JURNALE.length + PV_CONSTRUCTII.length + PV_INSTALATII.length + Object.values(DOCUMENTE_PROIECT).flat().length + 2
-    const activeTipuri = JURNALE.filter((x) => x.activ).length + PV_CONSTRUCTII.filter((x) => x.activ).length + PV_INSTALATII.filter((x) => x.activ).length + 1 // + registrul
+    const totalTipuri = Math.max(1, catalogTip(l.tip_proiect).length)
+    const activeTipuri = catalogTip(l.tip_proiect).filter((c) => c.activ).length
     const nrDocs = zile.length + docs.length
     if (curent?.l.id !== l.id) cautare = ''
     curent = { l, zile, docs }
@@ -1004,7 +959,7 @@
     const eJurnal = dec.fel === 'j'
     const titlu = eJurnal
       ? `Jurnal de șantier nr. ${d.nr}`
-      : `${TITLURI_PV[d.tip] ?? 'Proces verbal'}${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`
+      : `${titluTip(d.tip) || 'Proces verbal'}${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`
     const data = dataRo(eJurnal ? d.data : d.data_doc)
 
     $('pagina').innerHTML = `

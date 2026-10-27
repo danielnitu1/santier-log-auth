@@ -244,17 +244,24 @@
   // Ce face Claude în timp ce cheamă o unealtă, spus pe înțelesul omului.
   const UNELTE = {
     proiecte_lista: 'caut proiectele', proiect_creeaza: 'creez proiectul', proiect_modifica: 'modific proiectul',
-    tipuri_proiect: 'citesc tipurile de proiect', persoane_seteaza: 'salvez responsabilii',
+    tipuri_proiect: 'citesc tipurile de proiect', documente_disponibile: 'citesc documentele disponibile', persoane_seteaza: 'salvez responsabilii',
     jurnal_zi_citeste: 'citesc jurnalul', jurnal_zi_salveaza: 'salvez ciorna jurnalului', jurnal_zi_emite: 'emit ziua de jurnal',
     jurnal_export: 'pregătesc fișierul jurnalului', pv_citeste: 'citesc registrul PV', pv_salveaza: 'salvez ciorna PV-ului',
     pv_emite: 'emit PV-ul', registru_export: 'pregătesc registrul Excel',
   }
   const textUnealta = (n) => UNELTE[n] ?? 'lucrez'
-  const EXEMPLE = [
-    'Ce s-a lucrat ieri?',
-    'Azi: 4 dulgheri, cofrare stâlpi axa B, 12 mp. Mâine turnăm.',
-    'Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6.',
-  ]
+  // Exemple și textul din caseta de scris, după tipul proiectului.
+  const PE_TIP = {
+    santier: {
+      exemple: ['Ce s-a lucrat ieri?', 'Azi: 4 dulgheri, cofrare stâlpi axa B, 12 mp. Mâine turnăm.', 'Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6.'],
+      scrie: 'Scrie ce s-a lucrat azi…', intro: 'Eu completez jurnalul și PV-urile',
+    },
+    hr: {
+      exemple: ['Ce documente HR pot face aici?', 'Ce date are proiectul ăsta?', 'Adaugă punctul de lucru: Arad, str. Traian 12.'],
+      scrie: 'Scrie ce ai nevoie…', intro: 'Te ajut cu documentele HR',
+    },
+  }
+  const peTip = () => PE_TIP[curenta?.tip_proiect] ?? PE_TIP.santier
 
   let proiecte = []
   let curenta = null
@@ -322,6 +329,7 @@
     memorie.set('santier-log:proiect', id)
     if (location.hash !== '#chat') history.pushState(null, '', '#chat')
     $('titlu-chat').textContent = curenta.nume
+    $('text').placeholder = peTip().scrie
     $('mesaje').innerHTML = '<div class="lucreaza"><i></i>Se încarcă istoricul…</div>'
     arata('ecran-chat')
     const { data: conv } = await supabase.from('conversatii').select('id').eq('proiect_id', id).maybeSingle()
@@ -341,8 +349,8 @@
 
   function bunVenit() {
     const d = document.createElement('div'); d.className = 'bun-venit'
-    d.innerHTML = `<p><strong>Scrie ca pe WhatsApp.</strong> Eu completez jurnalul și PV-urile pentru „${esc(curenta.nume)}”.</p>
-      <div class="exemple">${EXEMPLE.map((e) => `<button class="exemplu" type="button">${esc(e)}</button>`).join('')}</div>`
+    d.innerHTML = `<p><strong>Scrie ca pe WhatsApp.</strong> ${peTip().intro} pentru „${esc(curenta.nume)}”.</p>
+      <div class="exemple">${peTip().exemple.map((e) => `<button class="exemplu" type="button">${esc(e)}</button>`).join('')}</div>`
     d.addEventListener('click', (ev) => { const b = ev.target.closest('.exemplu'); if (b) { $('text').value = b.textContent; potTrimite(); $('text').focus() } })
     $('mesaje').append(d)
   }
@@ -398,23 +406,28 @@
   // ---------- Documente: catalogul de pe server, grupat pe categorii ----------
   // Ce nu e gata apare dezactivat, cu „în curând”, ca testerul să vadă ce urmează.
   let catalog = null
+  let catalogTot = null // tot catalogul, cu tipurile de proiect la care apare fiecare document
   let folositeDes = []
   const fara = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
   async function deschideDocumente() {
     $('documente-cauta').value = ''
     $('documente').showModal()
-    if (!catalog) {
-      const { data, error } = await supabase.from('catalog_documente').select('cod, categorie, ordine_categorie, nume, ordine, activ, text_pornire, tip').order('ordine_categorie').order('ordine')
+    if (!catalogTot) {
+      const { data, error } = await supabase.from('catalog_documente')
+        .select('cod, categorie, ordine_categorie, nume, ordine, activ, text_pornire, tip, catalog_tipuri_proiect ( tip_proiect )')
+        .order('ordine_categorie').order('ordine')
       if (error) { $('documente-lista').innerHTML = '<p class="eroare">Nu pot încărca lista. Verifică internetul.</p>'; return }
-      catalog = data
+      catalogTot = data.map(({ catalog_tipuri_proiect: legaturi, ...c }) => ({ ...c, tipuri: (legaturi ?? []).map((x) => x.tip_proiect) }))
     }
-    // Folosite des: jurnalul, apoi documentele emise cel mai des pe proiectul ăsta.
+    // Doar documentele tipului de proiect (Șantier, HR…).
+    catalog = catalogTot.filter((c) => c.tipuri.includes(curenta.tip_proiect))
+    // Folosite des: jurnalul (dacă tipul îl are), apoi documentele emise cel mai des pe proiectul ăsta.
     const { data: emise } = await supabase.from('documente').select('tip').eq('proiect_id', curenta.id)
     const nr = {}
     for (const d of emise ?? []) nr[d.tip] = (nr[d.tip] ?? 0) + 1
     const dupaFolosire = catalog.filter((c) => c.activ && c.tip).sort((a, b) => (nr[b.tip] ?? 0) - (nr[a.tip] ?? 0))
-    folositeDes = [catalog.find((c) => c.cod === 'JS-01'), ...dupaFolosire.slice(0, 2)].filter(Boolean)
+    folositeDes = [catalog.find((c) => c.cod === 'JS-01' && c.activ), ...dupaFolosire.slice(0, 2)].filter(Boolean)
     deseneaza('')
   }
 
@@ -440,7 +453,7 @@
       g.docs.push(c)
     }
     $('documente-lista').innerHTML =
-      `<div class="grup-titlu">Folosite des</div>${folositeDes.map((c) => randDoc(c)).join('')}` +
+      (folositeDes.length ? `<div class="grup-titlu">Folosite des</div>${folositeDes.map((c) => randDoc(c)).join('')}` : '') +
       `<div class="grup-titlu" style="margin-top:18px">Toate, pe categorii</div>` +
       categorii.map((g) => {
         const gata = g.docs.filter((d) => d.activ).length
