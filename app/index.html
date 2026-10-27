@@ -116,12 +116,30 @@
   .bara-progres i { display: block; height: 100%; background: var(--ok); }
   .legenda { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
 
-  section.grup h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; font-weight: 700; display: flex; gap: 8px; align-items: baseline; }
-  section.grup h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
+  .grup h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; font-weight: 700; display: flex; gap: 8px; align-items: baseline; }
+  .grup h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
+
+  /* Lista de documente: vederi (pe tip / pe luni / toate), căutare și grupuri care se pliază. */
+  .unelte-docs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .vederi { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .vederi button { border: 0; background: none; border-radius: 7px; padding: 6px 12px; min-height: 36px; font-size: 14px; color: var(--muted); cursor: pointer; }
+  .vederi button:hover { color: var(--ink); }
+  .vederi button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  input.cauta-docs { flex: 1 1 220px; min-width: 0; margin: 0; padding: 8px 12px; }
+  #vedere-docs { display: grid; gap: 22px; }
+  details.grup > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0 0 8px; border-radius: 6px; }
+  details.grup > summary::-webkit-details-marker { display: none; }
+  details.grup > summary h2 { margin: 0; }
+  details.grup > summary:hover h2 { color: var(--ink); }
+  details.grup:not([open]) > summary { margin-bottom: 0; }
+  .chevron { flex: none; width: 8px; height: 8px; margin: 0 4px; border: solid var(--faint); border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; }
+  details[open] > summary .chevron, .tip-cap[aria-expanded="true"] .chevron { transform: rotate(45deg); }
+  @media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
+  .bloc-tabel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 14px; }
   .lista { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .tip { border-top: 1px solid var(--line); }
   .tip:first-child { border-top: 0; }
-  .tip-cap { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; width: 100%; text-align: left; background: none; border: 0; }
+  .tip-cap { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto 16px; gap: 10px; align-items: center; padding: 10px 14px; width: 100%; text-align: left; background: none; border: 0; }
   .tip-cap[aria-expanded] { cursor: pointer; }
   .tip-cap[aria-expanded]:hover { background: var(--hover); }
   .cod { font: 12px var(--mono); color: var(--faint); }
@@ -213,7 +231,10 @@
     }
     .proiect-btn { width: auto; flex: 0 0 auto; max-width: 75vw; scroll-snap-align: start; border: 1px solid var(--line); }
     .proiect-btn strong, .proiect-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tip-cap { grid-template-columns: 44px minmax(0, 1fr) auto; min-height: 52px; }
+    .tip-cap { grid-template-columns: 44px minmax(0, 1fr) auto 16px; min-height: 52px; }
+    .bloc-tabel { background: none; border: 0; padding: 0; }
+    .vederi { flex: 1 1 100%; }
+    .vederi button { flex: 1; }
     .docs { padding: 4px 12px 12px; }
     .bara .email { display: none; }
     .bara .dreapta button { min-height: 40px; padding: 6px 14px; }
@@ -474,6 +495,7 @@
         <span class="cod">${esc(cod ?? '')}</span>
         <span class="nume">${esc(nume)}${desc ? `<small>${esc(desc)}</small>` : ''}${activ && numar != null ? `<small>${numar} ${numar === 1 ? 'document' : 'documente'}</small>` : ''}</span>
         ${eticheta(activ)}
+        ${deschis ? '<i class="chevron" aria-hidden="true"></i>' : '<span></span>'}
       </button>
       ${deschis ? `<div class="docs" hidden>${corp}</div>` : ''}
     </div>`
@@ -646,33 +668,130 @@
     }
   })
 
-  function deseneazaProiectul(l, zile, docs) {
+  // ---------- Lista de documente: trei vederi, căutare, grupuri pliabile ----------
+  const pastrat = {
+    get: (k) => { try { return localStorage.getItem(k) } catch { return null } },
+    set: (k, v) => { try { localStorage.setItem(k, v) } catch { /* fără memorie locală, merge oricum */ } },
+  }
+  const VEDERI = [['tip', 'Pe tip'], ['luni', 'Pe luni'], ['toate', 'Toate']]
+  let vedere = VEDERI.some(([k]) => k === pastrat.get('santier-log:vedere')) ? pastrat.get('santier-log:vedere') : 'tip'
+  let cautare = ''
+  let curent = null // { l, zile, docs }
+  const fara = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+  // Cap de grup pliabil, cu iconiță de deschide / închide.
+  const grup = (titlu, mic, continut, deschis = true) =>
+    `<details class="grup"${deschis ? ' open' : ''}><summary><i class="chevron" aria-hidden="true"></i><h2>${titlu}${mic != null ? ` <small>${mic}</small>` : ''}</h2></summary>${continut}</details>`
+
+  function vederePeTip({ l, zile, docs }) {
     const obiecte = [...(l.obiecte ?? [])].sort((a, b) => a.ordine - b.ordine)
-    const persoane = [...(l.persoane_proiect ?? [])].sort((a, b) => a.ordine - b.ordine)
-
-    const totalTipuri = JURNALE.length + PV_CONSTRUCTII.length + PV_INSTALATII.length + Object.values(DOCUMENTE_PROIECT).flat().length + 2
-    const activeTipuri = JURNALE.filter((x) => x.activ).length + PV_CONSTRUCTII.filter((x) => x.activ).length + PV_INSTALATII.filter((x) => x.activ).length + 1 // + registrul
-    const nrDocs = zile.length + docs.length
-
     const obiecteHtml = obiecte.map((o) => {
       const aleObiectului = docs.filter((d) => d.obiect_id === o.id)
       const dinTip = (tip) => aleObiectului.filter((d) => d.tip === tip)
       return `<div class="obiect">
         ${obiecte.length > 1 || l.tip === 'cu_obiecte' ? `<h3>OB. ${esc(o.cod)} — ${esc(o.nume)}</h3>` : ''}
-        <section class="grup"><h2>Registrul obiectului</h2><div class="lista">
+        ${grup('Registrul obiectului', null, `<div class="lista">
           ${rand({ cod: 'REG', nume: 'Registrul procese verbale', desc: 'ordinea documentelor din dosar' }, { activ: true, numar: aleObiectului.filter((d) => d.pozitie != null).length, corp: corpRegistru(aleObiectului) })}
-        </div></section>
-        <section class="grup"><h2>PV construcții <small>${PV_CONSTRUCTII.length}</small></h2><div class="lista">
+        </div>`)}
+        ${grup('PV construcții', PV_CONSTRUCTII.length, `<div class="lista">
           ${PV_CONSTRUCTII.map((t) => t.activ ? rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) }) : rand(t)).join('')}
-        </div></section>
-        <section class="grup"><h2>PV instalații <small>${PV_INSTALATII.length}</small></h2><div class="lista">
+        </div>`)}
+        ${grup('PV instalații', PV_INSTALATII.length, `<div class="lista">
           ${PV_INSTALATII.filter((t) => t.activ).map((t) => rand(t, { activ: true, numar: dinTip(t.activ).length, corp: corpPv(dinTip(t.activ), t.activ) })).join('')}
-        </div></section>
-        <section class="grup">${grupInLucru('Celelalte PV de instalații', PV_INSTALATII.filter((t) => !t.activ))}</section>
+        </div>${grupInLucru('Celelalte PV de instalații', PV_INSTALATII.filter((t) => !t.activ))}`)}
       </div>`
     }).join('')
-
     const documenteHtml = `<div class="grupuri-wip">${Object.entries(DOCUMENTE_PROIECT).map(([cat, lista]) => grupInLucru(cat, lista)).join('')}</div>`
+    return `
+      ${grup('Jurnale', 'pentru tot proiectul', `<div class="lista">
+        ${JURNALE.map((t) => t.activ ? rand(t, { activ: true, numar: zile.length, corp: corpJurnal(zile) }) : rand(t)).join('')}
+      </div>`)}
+      ${obiecteHtml}
+      ${grup('Documentele proiectului', `${Object.values(DOCUMENTE_PROIECT).flat().length} modele, pe categorii`, documenteHtml)}
+      ${grup('Dosarul complet', null, `<div class="lista">
+        ${rand({ cod: 'CTC', nume: 'Cartea Tehnică completă', desc: 'toate documentele, în ordinea din borderou, într-un singur fișier' })}
+      </div>`)}`
+  }
+
+  // Jurnalele și PV-urile generate, într-o singură listă, cele mai noi primele.
+  function documenteGenerate({ zile, docs }) {
+    return [
+      ...zile.map((z) => ({ fel: 'j', d: z, data: z.data, titlu: `Jurnal de șantier nr. ${z.nr}`, descriere: '' })),
+      ...docs.map((d) => ({ fel: 'p', d, data: d.data_doc, titlu: `${TITLURI_PV[d.tip] ?? d.tip}${d.nr_pv ? ` nr. ${d.nr_pv}` : ''}`, descriere: d.descriere || '' })),
+    ].sort((a, b) => String(b.data ?? '').localeCompare(String(a.data ?? '')))
+  }
+  const tabelGenerate = (items) => `<div class="bloc-tabel">${tabel([
+    ['Data', (x) => dataRo(x.data) || '—', 'titlu-card'], ['Document', (x) => esc(x.titlu), 'titlu-card'],
+    ['Descriere', (x) => esc(x.descriere), 'lat'], ['Stare', (x) => stare(x.d.stare)],
+    ['Generat', (x) => descarca(x.d.fisier_docx) || '<span class="semnat-gol">—</span>'], ['Semnat', (x) => semnat(x.fel)(x.d)],
+  ], items)}</div>`
+  const NIMIC_GENERAT = '<p class="gol">Niciun document generat încă. Le faci din chat sau din Claude.</p>'
+
+  function lunaRo(ym) {
+    if (!ym) return 'Fără dată'
+    const [a, l] = ym.split('-').map(Number)
+    const s = new Date(a, l - 1, 1).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })
+    return s[0].toUpperCase() + s.slice(1)
+  }
+
+  function vederePeLuni(date) {
+    const items = documenteGenerate(date)
+    if (!items.length) return NIMIC_GENERAT
+    const luni = []
+    for (const x of items) {
+      const k = String(x.data ?? '').slice(0, 7)
+      let g = luni.at(-1)
+      if (g?.k !== k) luni.push(g = { k, items: [] })
+      g.items.push(x)
+    }
+    return luni.map((g) => grup(lunaRo(g.k), `${g.items.length} ${g.items.length === 1 ? 'document' : 'documente'}`, tabelGenerate(g.items))).join('')
+  }
+
+  const vedereToate = (date) => { const items = documenteGenerate(date); return items.length ? tabelGenerate(items) : NIMIC_GENERAT }
+
+  function deseneazaVederea() {
+    if (!curent || !$('vedere-docs')) return
+    for (const b of document.querySelectorAll('.vederi button')) b.setAttribute('aria-pressed', String(b.dataset.vedere === vedere))
+    $('vedere-docs').innerHTML = vedere === 'luni' ? vederePeLuni(curent) : vedere === 'toate' ? vedereToate(curent) : vederePeTip(curent)
+    aplicaCautare()
+  }
+
+  // Căutarea filtrează ce e deja pe pagină: rândurile din tabele, tipurile de documente, apoi grupurile goale dispar.
+  function aplicaCautare() {
+    const rad = $('vedere-docs')
+    if (!rad) return
+    const q = fara(cautare.trim())
+    for (const tr of rad.querySelectorAll('tbody tr')) tr.hidden = !!q && !fara(tr.textContent).includes(q)
+    for (const t of rad.querySelectorAll('.tip')) {
+      const potriviri = [...t.querySelectorAll('tbody tr')].filter((r) => !r.hidden).length
+      t.hidden = !!q && !fara(t.querySelector('.nume')?.textContent).includes(q) && !potriviri
+      const cap = t.querySelector('.tip-cap[aria-expanded]')
+      if (q && cap && potriviri) { cap.setAttribute('aria-expanded', 'true'); cap.nextElementSibling.hidden = false }
+    }
+    // Grupurile, din interior spre exterior: rămân doar cele cu ceva vizibil și se deschid singure.
+    // Întâi le facem pe toate vizibile, ca o căutare veche să nu ascundă rezultatele celei noi.
+    const grupuri = [...rad.querySelectorAll('details')]
+    for (const g of grupuri) g.hidden = false
+    for (const g of grupuri.reverse()) {
+      if (!q) continue
+      const vizibil = [...g.querySelectorAll('.tip, tbody tr')].some((e) => !e.closest('[hidden]'))
+      g.hidden = !vizibil
+      if (vizibil) g.open = true
+    }
+    const nimic = !!q && ![...rad.querySelectorAll('.tip, tbody tr')].some((e) => !e.closest('[hidden]'))
+    let mesaj = $('cautare-gol')
+    if (nimic && !mesaj) { mesaj = Object.assign(document.createElement('p'), { id: 'cautare-gol', className: 'gol' }); rad.append(mesaj) }
+    if (mesaj) { mesaj.hidden = !nimic; mesaj.textContent = `Nimic pentru „${cautare.trim()}”.` }
+  }
+
+  function deseneazaProiectul(l, zile, docs) {
+    const persoane = [...(l.persoane_proiect ?? [])].sort((a, b) => a.ordine - b.ordine)
+
+    const totalTipuri = JURNALE.length + PV_CONSTRUCTII.length + PV_INSTALATII.length + Object.values(DOCUMENTE_PROIECT).flat().length + 2
+    const activeTipuri = JURNALE.filter((x) => x.activ).length + PV_CONSTRUCTII.filter((x) => x.activ).length + PV_INSTALATII.filter((x) => x.activ).length + 1 // + registrul
+    const nrDocs = zile.length + docs.length
+    if (curent?.l.id !== l.id) cautare = ''
+    curent = { l, zile, docs }
 
     $('pagina').innerHTML = `
       <div class="antet">
@@ -691,19 +810,21 @@
         <div class="legenda"><span>${activeTipuri} din ${totalTipuri} tipuri de documente disponibile azi</span><span>${eticheta(true)} se face din Claude</span><span>${eticheta(false)} urmează</span></div>
       </div>
 
-      <section class="grup"><h2>Jurnale <small>pentru tot proiectul</small></h2><div class="lista">
-        ${JURNALE.map((t) => t.activ ? rand(t, { activ: true, numar: zile.length, corp: corpJurnal(zile) }) : rand(t)).join('')}
-      </div></section>
-
-      ${obiecteHtml}
-
-      <section class="grup"><h2>Documentele proiectului <small>${Object.values(DOCUMENTE_PROIECT).flat().length} modele, pe categorii</small></h2></section>
-      ${documenteHtml}
-
-      <section class="grup"><h2>Dosarul complet</h2><div class="lista">
-        ${rand({ cod: 'CTC', nume: 'Cartea Tehnică completă', desc: 'toate documentele, în ordinea din borderou, într-un singur fișier' })}
-      </div></section>`
+      <div class="unelte-docs">
+        <div class="vederi" role="group" aria-label="Cum arăt documentele">
+          ${VEDERI.map(([k, t]) => `<button type="button" data-vedere="${k}" aria-pressed="${k === vedere}">${t}</button>`).join('')}
+        </div>
+        <input class="cauta-docs" id="cauta-docs" type="search" placeholder="Caută: jurnal, nr. 3, octombrie, ciornă" aria-label="Caută în documente" autocomplete="off" value="${esc(cautare)}">
+      </div>
+      <div id="vedere-docs"></div>`
+    deseneazaVederea()
   }
+
+  $('pagina').addEventListener('input', (ev) => {
+    if (ev.target.id !== 'cauta-docs') return
+    cautare = ev.target.value
+    aplicaCautare()
+  })
 
   // ---------- Vederea unui document (de la codul QR) ----------
   // Codul: „j.” (zi de jurnal) sau „p.” (proces verbal) + UUID-ul în base64url (vezi functions/mcp/tools/qr.ts).
@@ -880,6 +1001,13 @@
       const deschis = cap.getAttribute('aria-expanded') === 'true'
       cap.setAttribute('aria-expanded', String(!deschis))
       cap.nextElementSibling.hidden = deschis
+      return
+    }
+    const v = ev.target.closest('.vederi button[data-vedere]')
+    if (v) {
+      vedere = v.dataset.vedere
+      pastrat.set('santier-log:vedere', vedere)
+      deseneazaVederea()
       return
     }
     if (ev.target.closest('#deschide-setari')) return deschideSetari()
