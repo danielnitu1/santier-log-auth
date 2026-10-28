@@ -351,10 +351,21 @@
   #ecran-app > .bara { position: static; flex: none; padding-top: max(10px, env(safe-area-inset-top, 0px)); }
   .app {
     flex: 1; min-height: 0;
-    grid-template-columns: 260px minmax(0, 1fr) minmax(340px, 420px);
+    /* Chatul: implicit 30% din fereastră; se trage de marginea lui (--lat-chat). Documentele păstrează cel puțin ~380 px. */
+    grid-template-columns: 260px minmax(0, 1fr) clamp(320px, var(--lat-chat, 30%), calc(100% - 640px));
     grid-template-rows: minmax(0, 1fr);
     grid-template-areas: "aside corp chat";
   }
+  /* Mânerul de redimensionare: o bandă de 8 px pe marginea stângă a chatului, cu o liniuță la mijloc. */
+  #chat { position: relative; }
+  .trage-chat { position: absolute; left: -5px; top: 0; bottom: 0; width: 10px; z-index: 3; cursor: col-resize; touch-action: none; }
+  .trage-chat::before { content: ""; position: absolute; left: 3px; top: 50%; width: 4px; height: 36px; margin-top: -18px; border-radius: 2px; background: var(--faint); opacity: .5; transition: opacity .15s; }
+  .trage-chat::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .15s; }
+  .trage-chat:hover::before, .trage-chat.activ::before { opacity: 1; }
+  .trage-chat:hover::after, .trage-chat:focus-visible::after, .trage-chat.activ::after { background: var(--ring); }
+  .trage-chat:focus-visible { outline: none; }
+  body.redimensionare { cursor: col-resize; user-select: none; }
+  @media (prefers-reduced-motion: reduce) { .trage-chat::before, .trage-chat::after { transition: none; } }
   aside { grid-area: aside; overflow-y: auto; min-height: 0; }
   main { grid-area: corp; overflow-y: auto; min-height: 0; }
   .proiect-bara { grid-area: bara; display: none; }
@@ -382,6 +393,7 @@
     .app { grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "aside bara" "aside corp"; }
     .proiect-bara { display: block; }
     #chat { grid-area: corp; border-left: 0; }
+    .trage-chat { display: none; }
     .app[data-tab="chat"] main { display: none; }
     .app[data-tab="documente"] #chat { display: none; }
     #chat > .chat-cap, .antet .titlu-rand { display: none; }
@@ -527,6 +539,7 @@
     </div>
     <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă proiectele…</p></div></main>
     <section id="chat" aria-label="Chat">
+      <div class="trage-chat" id="trage-chat" role="separator" aria-orientation="vertical" aria-label="Lățimea chatului" aria-valuemin="20" aria-valuemax="60" tabindex="0" title="Trage ca să schimbi lățimea. Dublu clic: înapoi la 30%."></div>
       <header class="chat-cap"><strong>Chat</strong><span>Scrie ce s-a făcut. Claude completează documentele.</span></header>
       <div class="fir" id="fir" aria-live="polite"><div class="fir-in" id="mesaje"></div></div>
       <div class="scrie">
@@ -1664,6 +1677,41 @@
       lucreaza.remove(); ocupat = false; potTrimite()
       if (aici()) { jos(); incarcaDocumente() }
     }
+  })
+
+  // ---------- Lățimea chatului (peste 1100 px) ----------
+  // Se ține ca fracție din fereastră, ca să rămână proporțională când fereastra se schimbă. Implicit 30%, între 20% și 60%.
+  const LAT_IMPLICIT = 0.3
+  function latChat(f) {
+    const v = Math.min(0.6, Math.max(0.2, f || LAT_IMPLICIT))
+    $('app').style.setProperty('--lat-chat', `${(v * 100).toFixed(1)}%`)
+    $('trage-chat').setAttribute('aria-valuenow', String(Math.round(v * 100)))
+    return v
+  }
+  let fractieChat = latChat(Number(pastrat.get('santier-log:lat-chat')))
+  const pastreazaLat = () => pastrat.set('santier-log:lat-chat', fractieChat.toFixed(3))
+  const trage = $('trage-chat')
+  trage.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault()
+    trage.setPointerCapture(ev.pointerId)
+    trage.classList.add('activ'); document.body.classList.add('redimensionare')
+  })
+  trage.addEventListener('pointermove', (ev) => {
+    if (!trage.hasPointerCapture(ev.pointerId)) return
+    const r = $('app').getBoundingClientRect()
+    fractieChat = latChat((r.right - ev.clientX) / r.width)
+  })
+  trage.addEventListener('lostpointercapture', () => {
+    trage.classList.remove('activ'); document.body.classList.remove('redimensionare')
+    pastreazaLat()
+  })
+  trage.addEventListener('dblclick', () => { fractieChat = latChat(LAT_IMPLICIT); pastreazaLat() })
+  // De la tastatură: săgeata stânga lărgește chatul, dreapta îl îngustează.
+  trage.addEventListener('keydown', (ev) => {
+    const pas = ev.key === 'ArrowLeft' ? 0.02 : ev.key === 'ArrowRight' ? -0.02 : 0
+    if (!pas) return
+    ev.preventDefault()
+    fractieChat = latChat(fractieChat + pas); pastreazaLat()
   })
 
   // ---------- Pornire ----------
