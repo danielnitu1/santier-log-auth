@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="robots" content="noindex">
-<title>santier-log</title>
+<title>DocuLog</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconite/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="iconite/apple-touch-icon.png">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="santier-log">
+<meta name="apple-mobile-web-app-title" content="DocuLog">
 <style>
   /* Layout: bară sus cu firma; stânga proiectele; la mijloc documentele proiectului ales; în dreapta chatul.
      Pe ecrane mai mici, chatul și documentele stau în taburi (vezi „O singură pagină” la final). */
@@ -493,7 +493,7 @@
 
 <div class="login" id="ecran-login" hidden>
   <div class="card">
-    <div class="brand">santier-log</div>
+    <div class="brand">DocuLog</div>
     <section id="pas-email">
       <h1>Intră în cont</h1>
       <p>Îți trimitem pe email un cod de 6 cifre.</p>
@@ -519,7 +519,7 @@
 
 <div id="ecran-app" hidden>
   <header class="bara">
-    <span class="brand">santier-log</span><span class="sep">/</span><span class="firma" id="firma">—</span>
+    <span class="brand">DocuLog</span><span class="sep">/</span><span class="firma" id="firma">—</span>
     <div class="dreapta"><span class="email" id="utilizator"></span><button id="iesire" type="button">Ieși</button></div>
   </header>
   <div class="app" id="app" data-tab="chat">
@@ -670,7 +670,7 @@
     const { error } = await supabase.auth.signInWithOtp({ email: emailCurent, options: { shouldCreateUser: false } })
     b.disabled = false
     if (error) return eroareLogin(error.status === 422 || /not allowed|signups/i.test(error.message)
-      ? 'Adresa asta nu are cont în santier-log.' : error.message)
+      ? 'Adresa asta nu are cont în DocuLog.' : error.message)
     $('email-afisat').textContent = emailCurent; $('pas-email').hidden = true; $('pas-cod').hidden = false; $('cod').focus()
   })
   $('form-cod').addEventListener('submit', async (ev) => {
@@ -731,7 +731,7 @@
   const mobil = matchMedia('(max-width: 760px)')
   function arataLista() {
     $('ecran-app').dataset.ecran = 'lista'
-    document.title = 'santier-log'
+    document.title = 'DocuLog'
   }
   $('inapoi-lista').addEventListener('click', () => {
     if (history.state?.proiect) return history.back()
@@ -757,10 +757,10 @@
   async function alege(id) {
     selectata = proiecte.find((l) => l.id === id)
     for (const b of document.querySelectorAll('.proiect-btn')) b.setAttribute('aria-current', String(b.dataset.id === id))
-    if (!selectata) { document.title = 'santier-log'; $('pagina').innerHTML = '<p style="color:var(--muted)">Niciun proiect încă. Apasă „+ Proiect nou” sau cere-i lui Claude să creeze unul.</p>'; return }
+    if (!selectata) { document.title = 'DocuLog'; $('pagina').innerHTML = '<p style="color:var(--muted)">Niciun proiect încă. Apasă „+ Proiect nou” sau cere-i lui Claude să creeze unul.</p>'; return }
     $('ecran-app').dataset.ecran = 'proiect'
     if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id)
-    document.title = `${selectata.nume} · santier-log`
+    document.title = `${selectata.nume} · DocuLog`
     $('pb-titlu').innerHTML = `<span>${esc(selectata.nume)}</span>${badgeTip(selectata)}`
     deschideChat(selectata)
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentele…</p>'
@@ -946,7 +946,7 @@
       return
     }
     Object.assign(selectata, detalii)
-    document.title = `${selectata.nume} · santier-log`
+    document.title = `${selectata.nume} · DocuLog`
     deseneazaProiecte()
     stareEl.textContent = 'Salvat.'
   })

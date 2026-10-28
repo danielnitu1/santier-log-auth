@@ -1,6 +1,6 @@
 {
-  "name": "santier-log",
-  "short_name": "santier-log",
+  "name": "DocuLog",
+  "short_name": "DocuLog",
   "description": "Documentele proiectelor, completate prin chat.",
   "lang": "ro",
   "id": "./",

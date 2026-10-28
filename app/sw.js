@@ -1,6 +1,6 @@
 // Service worker al aplicației (proiecte, documente, chat): păstrează interfața ca să se deschidă și fără semnal.
 // Mesajele și datele merg mereu la server; aici se pun doar fișierele paginii.
-const VERSIUNE = 'santier-log-app-1'
+const VERSIUNE = 'santier-log-app-2'
 const FISIERE = ['./', 'index.html', 'manifest.webmanifest', 'iconite/icon-192.png', 'iconite/icon-512.png', 'iconite/apple-touch-icon.png']
 
 self.addEventListener('install', (ev) => {
