@@ -2,11 +2,19 @@
 <html lang="ro">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="robots" content="noindex">
 <title>santier-log</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconite/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="iconite/apple-touch-icon.png">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="santier-log">
 <style>
-  /* Layout: bară sus cu firma; stânga proiectele; dreapta documentele proiectului ales. */
+  /* Layout: bară sus cu firma; stânga proiectele; la mijloc documentele proiectului ales; în dreapta chatul.
+     Pe ecrane mai mici, chatul și documentele stau în taburi (vezi „O singură pagină” la final). */
   /* Tokenii Apps SDK UI (OpenAI), aceiași în pagina proiectului și în chat. */
   :root {
     --bg: #f9f9f9; --panel: #ffffff; --ink: #0d0d0d; --muted: #5d5d5d; --faint: #8f8f8f;
@@ -247,15 +255,6 @@
   @media (max-width: 760px) {
     .app { grid-template-columns: minmax(0, 1fr); }
     aside, main { min-width: 0; }
-    aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 0; }
-    aside h2 { display: none; }
-    .aside-cap { margin: 0 16px 8px; justify-content: flex-end; }
-    #proiecte {
-      display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity;
-      padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
-    }
-    .proiect-btn { width: auto; flex: 0 0 auto; max-width: 75vw; scroll-snap-align: start; border: 1px solid var(--line); }
-    .proiect-btn strong, .proiect-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tip-cap { grid-template-columns: 44px minmax(0, 1fr) auto 16px; min-height: 52px; }
     .bloc-tabel { background: none; border: 0; padding: 0; }
     .vederi { flex: 1 1 100%; }
@@ -342,6 +341,140 @@
   .tip-card:hover { border-color: var(--faint); background: var(--hover); }
   .bara-progres i { background: var(--ok); }
   .incarca { border-radius: 16px; border-color: var(--line); background: var(--hover); color: var(--ink); }
+
+  /* ---------- O singură pagină: proiecte | documente | chat ----------
+     Peste 1100 px: trei coloane, fiecare cu derularea ei; chatul e mereu în dreapta.
+     Între 760 și 1100 px: lista de proiecte + taburile Chat / Documente.
+     Sub 760 px: un ecran pe rând, ca o aplicație de telefon: lista de proiecte, apoi proiectul (implicit pe Chat). */
+  html, body { height: 100%; }
+  #ecran-app { height: 100dvh; display: flex; flex-direction: column; }
+  #ecran-app > .bara { position: static; flex: none; padding-top: max(10px, env(safe-area-inset-top, 0px)); }
+  .app {
+    flex: 1; min-height: 0;
+    grid-template-columns: 260px minmax(0, 1fr) minmax(340px, 420px);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "aside corp chat";
+  }
+  aside { grid-area: aside; overflow-y: auto; min-height: 0; }
+  main { grid-area: corp; overflow-y: auto; min-height: 0; }
+  .proiect-bara { grid-area: bara; display: none; }
+  #chat { grid-area: chat; display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--panel); border-left: 1px solid var(--line); }
+  #ecran-app:not([data-ecran="proiect"]) #chat { display: none; }
+  .limita { margin: 16px 6px 0; font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+  .limita .bara-progres { height: 6px; }
+  .limita .bara-progres i { background: var(--ink); }
+
+  /* Bara proiectului (sub 1100 px): numele, Setări, apoi taburile. */
+  .proiect-bara { background: var(--panel); border-bottom: 1px solid var(--line); padding: 8px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+  .pb-rand { display: flex; align-items: center; gap: 6px; min-height: 40px; }
+  #pb-titlu { flex: 1; min-width: 0; margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  #pb-titlu span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pb-titlu .badge { flex: none; }
+  .icon-btn { flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border: 0; background: none; border-radius: 9999px; cursor: pointer; color: var(--ink); }
+  .icon-btn:hover { background: var(--hover); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .inapoi-lista { display: none; margin-left: -8px; }
+  .taburi { display: flex; gap: 2px; padding: 3px; margin-top: 8px; border: 1px solid var(--line); border-radius: 9999px; background: var(--bg); }
+  .taburi button { flex: 1; border: 0; background: none; border-radius: 9999px; min-height: 36px; font-size: 14px; color: var(--muted); cursor: pointer; }
+  .taburi button[aria-selected="true"] { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+
+  @media (max-width: 1099px) {
+    .app { grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "aside bara" "aside corp"; }
+    .proiect-bara { display: block; }
+    #chat { grid-area: corp; border-left: 0; }
+    .app[data-tab="chat"] main { display: none; }
+    .app[data-tab="documente"] #chat { display: none; }
+    #chat > .chat-cap, .antet .titlu-rand { display: none; }
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "bara" "corp"; }
+    #ecran-app[data-ecran="lista"] .app { grid-template-rows: minmax(0, 1fr); grid-template-areas: "aside"; }
+    #ecran-app[data-ecran="lista"] .app > :not(aside) { display: none !important; }
+    #ecran-app[data-ecran="proiect"] aside, #ecran-app[data-ecran="proiect"] > .bara { display: none; }
+    .proiect-bara { padding-top: max(8px, env(safe-area-inset-top, 0px)); }
+    .inapoi-lista { display: inline-grid; }
+    /* Lista de proiecte pe tot ecranul, cu carduri ușor de atins. */
+    aside { border-right: 0; background: var(--bg); padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+    .aside-cap { margin: 0 2px 10px; }
+    .proiect-btn { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 8px; }
+    .proiect-btn[aria-current="true"] { background: var(--panel); }
+    .limita { margin: 16px 2px 0; }
+  }
+  /* Vederea unui document (de la QR): doar documentul, fără listă și fără chat. */
+  .app.doc-vedere { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "corp"; }
+  .app.doc-vedere > :not(main) { display: none !important; }
+  .app.doc-vedere main { display: block !important; }
+
+  /* ---------- Chatul ---------- */
+  :root { --bula-om: #f3f3f3; }
+  @media (prefers-color-scheme: dark) { :root { --bula-om: #303030; } }
+  .chat-cap { flex: none; display: flex; align-items: baseline; gap: 8px; padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
+  .chat-cap strong { font-size: 15px; }
+  .chat-cap span { color: var(--muted); font-size: 13px; }
+  .fir { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
+  .fir-in { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .mesaj { max-width: 88%; overflow-wrap: anywhere; }
+  .mesaj.om { align-self: flex-end; background: var(--bula-om); color: var(--ink); padding: 10px 14px; border-radius: 18px; white-space: pre-wrap; }
+  .mesaj.claude { align-self: flex-start; max-width: 100%; }
+  .mesaj.claude > :first-child { margin-top: 0; } .mesaj.claude > :last-child { margin-bottom: 0; }
+  .mesaj.claude p, .mesaj.claude ul, .mesaj.claude ol { margin: 0 0 8px; }
+  .mesaj.claude ul, .mesaj.claude ol { padding-left: 1.3em; }
+  .mesaj.claude li { margin: 2px 0; }
+  .mesaj.claude a { color: var(--link); font-weight: 600; }
+  .mesaj.claude code { font: 14px var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
+  .mesaj.claude h3 { font-size: 15px; margin: 10px 0 4px; }
+  .unelte { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; }
+  .unealta { font-size: 13px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 9999px; padding: 2px 10px; }
+  .lucreaza { align-self: flex-start; color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .lucreaza i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); animation: puls 1s ease-in-out infinite; }
+  @keyframes puls { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .lucreaza i { animation: none; } }
+  .eroare-chat { align-self: stretch; color: var(--danger); background: var(--hover); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+  .eroare-chat .link { margin: 0; }
+  .bun-venit { color: var(--muted); text-align: center; padding: 24px 4px; display: flex; flex-direction: column; gap: 10px; }
+  .bun-venit p { margin: 0; }
+  .bun-venit strong { color: var(--ink); }
+  .exemple { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .exemplu { border: 1px solid var(--line); background: var(--panel); border-radius: 9999px; padding: 8px 14px; cursor: pointer; text-align: left; max-width: 100%; }
+  .exemplu:hover { background: var(--hover); }
+  .scrie { flex: none; background: var(--panel); border-top: 1px solid var(--line); padding: 10px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+  .scrie form { max-width: 720px; margin: 0 auto; display: flex; gap: 6px; align-items: flex-end; }
+  .scrie textarea { flex: 1; min-width: 0; resize: none; overflow-y: hidden; max-height: 40vh; margin: 0; padding: 10px 14px; font: inherit; font-size: 16px; line-height: 1.4; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 22px; }
+  .scrie textarea:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+  .scrie .icon-btn { width: 44px; height: 44px; color: var(--muted); }
+  .trimite { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; cursor: pointer; }
+  .trimite:disabled { opacity: .4; cursor: default; }
+  .trimite svg { width: 20px; height: 20px; }
+
+  /* Foaia Documente din chat: urcă de jos pe telefon, centrată pe calculator. */
+  #documente { margin: auto auto 0; width: 100%; max-width: 640px; max-height: 85dvh; padding: 0; border: 0; border-radius: 20px 20px 0 0; background: var(--panel); color: var(--ink); }
+  #documente::backdrop { background: rgb(0 0 0 / .45); }
+  #documente[open] { display: flex; flex-direction: column; }
+  @media (min-width: 761px) { #documente { margin: auto; max-height: 80vh; border-radius: 20px; box-shadow: 0 8px 32px rgb(0 0 0 / .12); } #documente .maner { display: none; } }
+  .foaie-cap { flex: none; padding: 8px 16px 10px; border-bottom: 1px solid var(--line); }
+  .foaie-cap .maner { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 8px; }
+  .foaie-cap .rand { display: flex; align-items: center; gap: 8px; }
+  .foaie-cap h2 { flex: 1; font-size: 17px; margin: 0; }
+  .foaie-cap input { margin: 8px 0 0; border-radius: 9999px; }
+  .foaie-corp { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  #documente .gol { color: var(--muted); padding: 20px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
+  .grup-titlu { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 600; margin: 10px 0 4px; }
+  .doc { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; text-align: left; background: none; border: 0; border-top: 1px solid var(--line); padding: 8px 2px; cursor: pointer; }
+  .doc:hover { background: var(--hover); }
+  .doc span { flex: 1; min-width: 0; }
+  .doc small { color: var(--faint); font-size: 12px; }
+  .doc[aria-disabled="true"] { cursor: default; color: var(--faint); }
+  .doc[aria-disabled="true"]:hover { background: none; }
+  .doc .curand { flex: none; font-size: 12px; border-radius: 4px; padding: 1px 8px; background: var(--wip-soft); color: var(--wip); font-style: normal; font-weight: 500; }
+  .categorie { border-top: 1px solid var(--line); }
+  .categorie summary { display: flex; align-items: center; gap: 10px; min-height: 48px; cursor: pointer; list-style: none; font-weight: 600; }
+  .categorie summary::-webkit-details-marker { display: none; }
+  .categorie summary span { flex: 1; }
+  .categorie summary small { font-weight: 400; color: var(--muted); font-size: 13px; }
+  .categorie summary::after { content: ""; width: 8px; height: 8px; border: solid var(--faint); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: 0 6px 4px; transition: transform .15s; }
+  .categorie[open] summary::after { transform: rotate(-135deg); margin-bottom: -4px; }
+  .categorie .doc { padding-left: 14px; }
+  @media (prefers-reduced-motion: reduce) { .categorie summary::after { transition: none; } }
 </style>
 </head>
 <body>
@@ -377,11 +510,53 @@
     <span class="brand">santier-log</span><span class="sep">/</span><span class="firma" id="firma">—</span>
     <div class="dreapta"><span class="email" id="utilizator"></span><button id="iesire" type="button">Ieși</button></div>
   </header>
-  <div class="app">
-    <aside aria-label="Proiecte"><div class="aside-cap"><h2>Proiecte</h2><button class="nou-btn" id="proiect-nou" type="button"><svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z" clip-rule="evenodd"/></svg>Proiect nou</button></div><div id="proiecte"></div></aside>
+  <div class="app" id="app" data-tab="chat">
+    <aside aria-label="Proiecte"><div class="aside-cap"><h2>Proiecte</h2><button class="nou-btn" id="proiect-nou" type="button"><svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z" clip-rule="evenodd"/></svg>Proiect nou</button></div><div id="proiecte"></div><div class="limita" id="limita" hidden></div></aside>
+    <div class="proiect-bara">
+      <div class="pb-rand">
+        <button class="icon-btn inapoi-lista" id="inapoi-lista" type="button" aria-label="Înapoi la proiecte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h1 id="pb-titlu"></h1>
+        <button class="icon-btn" id="pb-setari" type="button" aria-label="Setări proiect"></button>
+      </div>
+      <div class="taburi" role="tablist" aria-label="Chat sau documente">
+        <button type="button" role="tab" data-tab="chat" aria-selected="true">Chat</button>
+        <button type="button" role="tab" data-tab="documente" aria-selected="false">Documente</button>
+      </div>
+    </div>
     <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă proiectele…</p></div></main>
+    <section id="chat" aria-label="Chat">
+      <header class="chat-cap"><strong>Chat</strong><span>Scrie ce s-a făcut. Claude completează documentele.</span></header>
+      <div class="fir" id="fir" aria-live="polite"><div class="fir-in" id="mesaje"></div></div>
+      <div class="scrie">
+        <form id="form-mesaj">
+          <button class="icon-btn" id="btn-documente" type="button" aria-label="Alege un document" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+          </button>
+          <textarea id="text" rows="1" placeholder="Scrie ce s-a lucrat azi…" enterkeyhint="send" aria-label="Mesaj"></textarea>
+          <button class="trimite" id="trimite" type="submit" aria-label="Trimite" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
   </div>
 </div>
+
+<dialog id="documente" aria-labelledby="documente-titlu">
+  <div class="foaie-cap">
+    <div class="maner"></div>
+    <div class="rand">
+      <h2 id="documente-titlu">Ce document faci?</h2>
+      <button class="icon-btn" id="documente-inchide" type="button" aria-label="Închide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <input id="documente-cauta" type="search" placeholder="Caută un document" aria-label="Caută un document" autocomplete="off">
+  </div>
+  <div class="foaie-corp" id="documente-lista"></div>
+</dialog>
 
 <dialog id="setari" aria-labelledby="setari-titlu">
   <div class="setari-cap">
@@ -437,7 +612,9 @@
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/+esm'
 
-  const supabase = createClient('https://iynnqvrprudvwgnhynku.supabase.co', 'sb_publishable_2LlyrWtb3Qrafj6phg_4Gw_vyw7vyU4')
+  const URL_SUPABASE = 'https://iynnqvrprudvwgnhynku.supabase.co'
+  const CHEIE_PUBLICA = 'sb_publishable_2LlyrWtb3Qrafj6phg_4Gw_vyw7vyU4'
+  const supabase = createClient(URL_SUPABASE, CHEIE_PUBLICA)
   const $ = (id) => document.getElementById(id)
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
   const dataRo = (iso) => iso ? iso.slice(0, 10).split('-').reverse().join('.') : ''
@@ -500,12 +677,14 @@
     $('ecran-login').hidden = true; $('ecran-app').hidden = false
     $('utilizator').textContent = user.email
 
-    const [{ data: membri }, { data: lc, error }, { data: tp }, { data: cat }] = await Promise.all([
+    const [{ data: membri }, { data: lc, error }, { data: tp }, { data: cat }, { data: limita }] = await Promise.all([
       supabase.from('membri').select('firma_id, rol, firme ( nume )').eq('user_id', user.id),
       supabase.from('proiecte').select('id, firma_id, nume, tip_proiect, date, sigle, persoane_proiect ( rol, nume, specialitate, ordine )').order('modificat_la', { ascending: false }),
       supabase.from('tipuri_proiect').select('cod, nume, descriere, campuri').order('ordine'),
       supabase.from('catalog_documente').select('cod, categorie, ordine_categorie, nume, ordine, activ, text_pornire, tip, catalog_tipuri_proiect ( tip_proiect )').order('ordine_categorie').order('ordine'),
+      supabase.from('limite_chat').select('limita_tokeni, tokeni_folositi').eq('user_id', user.id).maybeSingle(),
     ])
+    arataLimita(limita)
     tipuri = tp ?? []
     catalog = (cat ?? []).map(({ catalog_tipuri_proiect: legaturi, ...c }) => ({ ...c, tipuri: (legaturi ?? []).map((x) => x.tip_proiect) }))
     firmeEditabile = (membri ?? []).filter((m) => m.rol === 'admin' || m.rol === 'editor').map((m) => ({ id: m.firma_id, nume: m.firme?.nume ?? '' }))
@@ -516,8 +695,10 @@
     deseneazaProiecte()
     const codDocument = new URLSearchParams(location.search).get('d')
     if (codDocument) return deseneazaDocument(codDocument)
-    const dinAdresa = location.hash.slice(1)
-    alege(proiecte.find((l) => l.id === dinAdresa)?.id ?? proiecte[0]?.id)
+    // Proiectul din adresă (#id). Fără el: pe telefon lista de proiecte, pe calculator primul proiect.
+    const dinAdresa = proiecte.find((l) => l.id === location.hash.slice(1))?.id
+    if (!dinAdresa && mobil.matches) return arataLista()
+    alege(dinAdresa ?? proiecte[0]?.id)
   }
 
   function deseneazaProiecte() {
@@ -525,20 +706,64 @@
       ? proiecte.map((l) => `<button class="proiect-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span class="proiect-sub">${badgeTip(l)}<span>${esc((tipul(l)?.campuri ?? []).map((c) => valoare(l, c.cheie)).find(Boolean) ?? '')}</span></span></button>`).join('')
       : '<p style="color:var(--muted);padding:0 6px">Niciun proiect încă. Apasă „+ Proiect nou”.</p>'
   }
-  $('proiecte').addEventListener('click', (ev) => { const b = ev.target.closest('.proiect-btn'); if (b) alege(b.dataset.id) })
+  $('proiecte').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.proiect-btn')
+    if (!b) return
+    // Pe telefon, deschiderea unui proiect e un pas în istoric: „Înapoi” revine la listă.
+    if (mobil.matches) { history.pushState({ proiect: b.dataset.id }, '', '#' + b.dataset.id); arataTab('chat') }
+    alege(b.dataset.id)
+  })
+
+  // ---------- Ecranele: lista de proiecte (doar pe telefon) sau proiectul ----------
+  const mobil = matchMedia('(max-width: 760px)')
+  function arataLista() {
+    $('ecran-app').dataset.ecran = 'lista'
+    document.title = 'santier-log'
+  }
+  $('inapoi-lista').addEventListener('click', () => {
+    if (history.state?.proiect) return history.back()
+    history.replaceState(null, '', location.pathname + location.search)
+    arataLista()
+  })
+  addEventListener('popstate', () => {
+    const id = proiecte.find((l) => l.id === location.hash.slice(1))?.id
+    if (id) alege(id)
+    else if (mobil.matches) arataLista()
+  })
+  // Telefonul întors sau fereastra lărgită: pe ecran mare nu există „doar lista”.
+  mobil.addEventListener('change', () => { if (!mobil.matches && $('ecran-app').dataset.ecran === 'lista' && proiecte.length) alege(selectata?.id ?? proiecte[0].id) })
+
+  // Taburile Chat / Documente (sub 1100 px; peste, se văd amândouă).
+  function arataTab(t) {
+    $('app').dataset.tab = t
+    for (const b of document.querySelectorAll('.taburi [data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === t))
+    if (t === 'chat') jos(true)
+  }
+  document.querySelector('.taburi').addEventListener('click', (ev) => { const b = ev.target.closest('[data-tab]'); if (b) arataTab(b.dataset.tab) })
 
   async function alege(id) {
     selectata = proiecte.find((l) => l.id === id)
     for (const b of document.querySelectorAll('.proiect-btn')) b.setAttribute('aria-current', String(b.dataset.id === id))
     if (!selectata) { document.title = 'santier-log'; $('pagina').innerHTML = '<p style="color:var(--muted)">Niciun proiect încă. Apasă „+ Proiect nou” sau cere-i lui Claude să creeze unul.</p>'; return }
-    history.replaceState(null, '', '#' + id)
+    $('ecran-app').dataset.ecran = 'proiect'
+    if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id)
     document.title = `${selectata.nume} · santier-log`
+    $('pb-titlu').innerHTML = `<span>${esc(selectata.nume)}</span>${badgeTip(selectata)}`
+    deschideChat(selectata)
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentele…</p>'
+    await incarcaDocumente()
+  }
+
+  // Documentele proiectului ales. Se reîncarcă și după fiecare răspuns din chat, ca să apară ce a emis Claude.
+  async function incarcaDocumente() {
+    const l = selectata
+    if (!l) return
     const [{ data: zile }, { data: docs }] = await Promise.all([
-      supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx, fisiere_semnate').eq('proiect_id', id).order('data', { ascending: false }),
-      supabase.from('documente').select('id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('proiect_id', id),
+      supabase.from('jurnal_zile').select('id, data, nr, stare, versiune, fisier_docx, fisiere_semnate').eq('proiect_id', l.id).order('data', { ascending: false }),
+      supabase.from('documente').select('id, tip, data_doc, stare, nr_pv, pozitie, versiune, categorie, descriere, fisier_docx, fisiere_semnate').eq('proiect_id', l.id),
     ])
-    deseneazaProiectul(selectata, zile ?? [], docs ?? [])
+    if (selectata !== l) return
+    deseneazaProiectul(l, zile ?? [], docs ?? [])
   }
 
   // ---------- Randare ----------
@@ -688,7 +913,12 @@
 
   $('setari-inchide').addEventListener('click', () => $('setari').close())
   $('setari').addEventListener('click', (ev) => { if (ev.target === $('setari')) $('setari').close() }) // clic pe fundal
-  $('setari').addEventListener('close', () => { if (selectata) alege(selectata.id) })
+  $('setari').addEventListener('close', () => {
+    if (!selectata) return
+    $('pb-titlu').innerHTML = `<span>${esc(selectata.nume)}</span>${badgeTip(selectata)}`
+    incarcaDocumente()
+  })
+  $('pb-setari').addEventListener('click', () => deschideSetari())
 
   $('form-detalii').addEventListener('submit', async (ev) => {
     ev.preventDefault()
@@ -761,6 +991,7 @@
     if (nota?.classList.contains('nota-curand')) nota.hidden = false
   })
   for (const b of document.querySelectorAll('[data-icon="connect"]')) b.insertAdjacentHTML('afterbegin', ICON.connect)
+  $('pb-setari').innerHTML = ICON.setari
 
   // ---------- Lista de documente: trei vederi, căutare, grupuri pliabile ----------
   const pastrat = {
@@ -895,7 +1126,7 @@
 
     $('pagina').innerHTML = `
       <div class="antet">
-        <div class="titlu-rand"><h1>${esc(l.nume)} ${badgeTip(l)}</h1><div class="actiuni-proiect"><a class="descarca setari-btn chat-btn" href="../chat/?proiect=${esc(l.id)}" target="_blank" rel="noopener">${ICON.chat}Chat</a><button class="descarca setari-btn" type="button" id="deschide-setari">${ICON.setari}Setări</button></div></div>
+        <div class="titlu-rand"><h1>${esc(l.nume)} ${badgeTip(l)}</h1><div class="actiuni-proiect"><button class="descarca setari-btn" type="button" id="deschide-setari">${ICON.setari}Setări</button></div></div>
         <dl>
           ${(tipul(l)?.campuri ?? []).filter((c) => c.in_antet || valoare(l, c.cheie)).map((c) => `<div><dt>${esc(c.eticheta)}</dt><dd>${esc(valoare(l, c.cheie) || '—')}</dd></div>`).join('')}
         </dl>
@@ -1048,7 +1279,8 @@
   })
 
   async function deseneazaDocument(cod) {
-    $('ecran-app').querySelector('.app').classList.add('doc-vedere')
+    $('ecran-app').dataset.ecran = 'document'
+    $('app').classList.add('doc-vedere')
     const dec = decodeaza(cod)
     if (!dec) { $('pagina').innerHTML = '<p class="eroare">Codul QR nu e valid. Scanează-l din nou.</p>'; return }
     $('pagina').innerHTML = '<p style="color:var(--muted)">Se încarcă documentul…</p>'
@@ -1173,6 +1405,269 @@
     await porneste()
   })
 
+  // ---------- Chatul proiectului: funcția chat (Claude Haiku cu uneltele santier-log), câte o conversație pe om și proiect ----------
+  // Ce face Claude în timp ce cheamă o unealtă, spus pe înțelesul omului.
+  const UNELTE = {
+    proiecte_lista: 'caut proiectele', proiect_creeaza: 'creez proiectul', proiect_modifica: 'modific proiectul',
+    tipuri_proiect: 'citesc tipurile de proiect', documente_disponibile: 'citesc documentele disponibile', persoane_seteaza: 'salvez responsabilii',
+    jurnal_zi_citeste: 'citesc jurnalul', jurnal_zi_salveaza: 'salvez ciorna jurnalului', jurnal_zi_emite: 'emit ziua de jurnal',
+    jurnal_export: 'pregătesc fișierul jurnalului', document_citeste: 'citesc documentele', document_salveaza: 'salvez ciorna',
+    document_emite: 'emit documentul', registru_export: 'pregătesc registrul Excel',
+  }
+  const textUnealta = (n) => UNELTE[n] ?? 'lucrez'
+  // Exemple și textul din caseta de scris, după tipul proiectului.
+  const PE_TIP = {
+    santier: {
+      exemple: ['Ce s-a lucrat ieri?', 'Azi: 4 dulgheri, cofrare stâlpi axa B, 12 mp. Mâine turnăm.', 'Fă un PV de lucrări ascunse pentru armarea fundațiilor F1–F6.'],
+      scrie: 'Scrie ce s-a lucrat azi…', intro: 'Eu completez jurnalul și PV-urile',
+    },
+    hr: {
+      exemple: ['Ce documente HR pot face aici?', 'Ce date are proiectul ăsta?', 'Adaugă punctul de lucru: Arad, str. Traian 12.'],
+      scrie: 'Scrie ce ai nevoie…', intro: 'Te ajut cu documentele HR',
+    },
+    custom: {
+      exemple: ['Ce date are proiectul ăsta?', 'Pune clientul: SC Exemplu SRL.', 'Cum îmi adaug modelele mele de documente?'],
+      scrie: 'Scrie ce ai nevoie…', intro: 'Te ajut cu documentele tale',
+    },
+  }
+  const peTip = () => PE_TIP[selectata?.tip_proiect] ?? PE_TIP.santier
+
+  let chatProiect = null // proiectul al cărui istoric e afișat
+  let ocupat = false
+
+  function arataLimita(l) {
+    if (!l) { $('limita').hidden = true; return }
+    const p = Math.min(100, Math.round((l.tokeni_folositi / Math.max(1, l.limita_tokeni)) * 100))
+    $('limita').innerHTML = `<span>Ai folosit ${p}% din limita chatului.</span><div class="bara-progres" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100" aria-label="Limita chatului"><i style="width:${p}%"></i></div>`
+    $('limita').hidden = false
+  }
+
+  async function deschideChat(l) {
+    if (chatProiect === l.id) return
+    chatProiect = l.id
+    $('text').placeholder = peTip().scrie
+    $('mesaje').innerHTML = '<div class="lucreaza"><i></i>Se încarcă istoricul…</div>'
+    const { data: conv } = await supabase.from('conversatii').select('id').eq('proiect_id', l.id).maybeSingle()
+    const { data: istoric } = conv
+      ? await supabase.from('mesaje').select('rol, continut').eq('conversatie_id', conv.id).order('id')
+      : { data: [] }
+    if (chatProiect !== l.id) return
+    $('mesaje').innerHTML = ''
+    if (!istoric?.length) bunVenit()
+    for (const m of istoric ?? []) adaugaDinIstoric(m)
+    jos(true)
+  }
+
+  function bunVenit() {
+    const d = document.createElement('div'); d.className = 'bun-venit'
+    d.innerHTML = `<p><strong>Scrie ca pe WhatsApp.</strong> ${peTip().intro} pentru „${esc(selectata.nume)}”.</p>
+      <div class="exemple">${peTip().exemple.map((e) => `<button class="exemplu" type="button">${esc(e)}</button>`).join('')}</div>`
+    d.addEventListener('click', (ev) => { const b = ev.target.closest('.exemplu'); if (b) { $('text').value = b.textContent; potTrimite(); $('text').focus() } })
+    $('mesaje').append(d)
+  }
+
+  // Istoricul e exact ce a venit de la Claude: arătăm textul și uneltele folosite, nu și rezultatele lor.
+  function adaugaDinIstoric({ rol, continut }) {
+    const blocuri = Array.isArray(continut) ? continut : [{ type: 'text', text: String(continut) }]
+    if (rol === 'user') {
+      // Primul bloc („Data de azi: …”) e pentru Claude, nu se arată.
+      const t = blocuri.filter((b) => b.type === 'text' && !b.text.startsWith('Data de azi: ')).map((b) => b.text).join('\n')
+      if (t) bulaOm(t)
+      return
+    }
+    const unelte = blocuri.filter((b) => b.type === 'mcp_tool_use').map((b) => b.name)
+    if (unelte.length) cipuri(unelte)
+    const t = blocuri.filter((b) => b.type === 'text').map((b) => b.text).join('')
+    if (t) bulaClaude().innerHTML = markdown(t)
+  }
+  function bulaOm(t) { const d = document.createElement('div'); d.className = 'mesaj om'; d.textContent = t; $('mesaje').append(d) }
+  function bulaClaude() { const d = document.createElement('div'); d.className = 'mesaj claude'; $('mesaje').append(d); return d }
+  function cipuri(nume) {
+    const d = document.createElement('div'); d.className = 'unelte'
+    d.innerHTML = [...new Set(nume)].map((n) => `<span class="unealta">${esc(textUnealta(n))}</span>`).join('')
+    $('mesaje').append(d)
+  }
+  function jos(imediat) { const f = $('fir'); f.scrollTo({ top: f.scrollHeight, behavior: imediat ? 'auto' : 'smooth' }) }
+
+  // Markdown minimal și sigur: titluri, liste, **bold**, `cod`, linkuri. Totul e escapat întâi.
+  function inline(s) {
+    return esc(s)
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (m, p, u) => `${p}<a href="${u}" target="_blank" rel="noopener">${u.length > 48 ? 'Descarcă fișierul' : u}</a>`)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+  }
+  function markdown(text) {
+    const out = []; let tipLista = null
+    const inchide = () => { if (tipLista) { out.push(`</${tipLista}>`); tipLista = null } }
+    for (const linie of text.split('\n')) {
+      const ul = linie.match(/^\s*[-*•]\s+(.*)$/), ol = linie.match(/^\s*\d+[.)]\s+(.*)$/), h = linie.match(/^#{1,4}\s+(.*)$/)
+      if (ul || ol) {
+        const tip = ul ? 'ul' : 'ol'
+        if (tipLista !== tip) { inchide(); out.push(`<${tip}>`); tipLista = tip }
+        out.push(`<li>${inline((ul || ol)[1])}</li>`)
+      } else if (h) { inchide(); out.push(`<h3>${inline(h[1])}</h3>`) }
+      else if (!linie.trim()) inchide()
+      else { inchide(); out.push(`<p>${inline(linie)}</p>`) }
+    }
+    inchide()
+    return out.join('')
+  }
+
+  // ---------- Foaia „Ce document faci?”: alegi un document, iar textul lui de pornire intră în caseta de scris ----------
+  let folositeDes = []
+  function deschideFoaie() {
+    if (!selectata) return
+    $('documente-cauta').value = ''
+    const cat = catalogTip(selectata.tip_proiect)
+    // Folosite des: jurnalul (dacă tipul îl are), apoi documentele emise cel mai des pe proiectul ăsta.
+    const nr = {}
+    for (const d of curent?.docs ?? []) nr[d.tip] = (nr[d.tip] ?? 0) + 1
+    const dupaFolosire = cat.filter((c) => c.activ && c.tip).sort((a, b) => (nr[b.tip] ?? 0) - (nr[a.tip] ?? 0))
+    folositeDes = [cat.find((c) => c.cod === 'JS-01' && c.activ), ...dupaFolosire.slice(0, 2)].filter(Boolean)
+    deseneazaFoaie('')
+    $('documente').showModal()
+  }
+
+  function randFoaie(c, cuCategorie) {
+    const extra = cuCategorie ? `<br><small>${esc(c.categorie)}</small>` : ''
+    return c.activ
+      ? `<button class="doc" type="button" data-cod="${esc(c.cod)}"><span>${esc(c.nume)}${extra}</span></button>`
+      : `<button class="doc" type="button" aria-disabled="true"><span>${esc(c.nume)}${extra}</span><em class="curand">în curând</em></button>`
+  }
+
+  function deseneazaFoaie(text) {
+    const cat = catalogTip(selectata.tip_proiect)
+    if (!cat.length) {
+      $('documente-lista').innerHTML = `<p class="gol">Proiectele de tip ${badgeTip(selectata)} nu au documente predefinite. Încarci modelele tale, iar Claude le completează din chat.</p>
+        <button class="btn-secundar incarca-proprii" type="button" style="margin-top:12px">${ICON.upload}Upload your own documents</button>
+        <p class="nota-curand" hidden>În curând. Până atunci, trimite-ne modelele și le adăugăm noi.</p>`
+      return
+    }
+    const q = fara(text.trim())
+    if (q) {
+      const gasite = cat.filter((c) => fara(c.nume + ' ' + c.categorie).includes(q)).sort((a, b) => b.activ - a.activ)
+      $('documente-lista').innerHTML = gasite.length ? gasite.map((c) => randFoaie(c, true)).join('')
+        : `<p class="gol">Niciun document pentru „${esc(text.trim())}”. Poți scrie direct în chat ce ai nevoie.</p>`
+      return
+    }
+    const categorii = []
+    for (const c of cat) {
+      let g = categorii.at(-1)
+      if (g?.nume !== c.categorie) categorii.push(g = { nume: c.categorie, docs: [] })
+      g.docs.push(c)
+    }
+    $('documente-lista').innerHTML =
+      (folositeDes.length ? `<div class="grup-titlu">Folosite des</div>${folositeDes.map((c) => randFoaie(c)).join('')}` : '') +
+      `<div class="grup-titlu" style="margin-top:18px">Toate, pe categorii</div>` +
+      categorii.map((g) => {
+        const gata = g.docs.filter((d) => d.activ).length
+        return `<details class="categorie"><summary><span>${esc(g.nume)}</span><small>${gata ? `${gata} din ${g.docs.length}` : `${g.docs.length}, în curând`}</small></summary>${g.docs.map((d) => randFoaie(d)).join('')}</details>`
+      }).join('')
+  }
+
+  $('btn-documente').addEventListener('click', deschideFoaie)
+  $('documente-inchide').addEventListener('click', () => $('documente').close())
+  $('documente').addEventListener('click', (ev) => { if (ev.target === $('documente')) $('documente').close() }) // atingerea în afara foii
+  $('documente-cauta').addEventListener('input', (ev) => deseneazaFoaie(ev.target.value))
+  $('documente-lista').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.doc[data-cod]')
+    if (!b) return
+    const c = catalog.find((x) => x.cod === b.dataset.cod)
+    $('documente').close()
+    const t = $('text')
+    t.value = c.text_pornire ?? c.nume
+    potTrimite()
+    t.focus()
+    t.setSelectionRange(t.value.length, t.value.length)
+  })
+
+  // ---------- Trimiterea, cu răspunsul în flux ----------
+  const potTrimite = () => { $('trimite').disabled = ocupat || !$('text').value.trim(); creste() }
+  // Caseta crește cu textul. scrollHeight nu include bordura, iar fără ea apare o bară de derulare inutilă.
+  function creste() {
+    const t = $('text'), max = innerHeight * 0.4
+    t.style.height = 'auto'
+    const h = t.scrollHeight + t.offsetHeight - t.clientHeight
+    t.style.height = Math.min(h, max) + 'px'
+    t.style.overflowY = h > max ? 'auto' : 'hidden'
+  }
+  $('text').addEventListener('input', potTrimite)
+  $('text').addEventListener('keydown', (ev) => {
+    // Pe calculator, Enter trimite (Shift+Enter = rând nou). Pe telefon, Enter face rând nou.
+    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && matchMedia('(pointer: fine)').matches) { ev.preventDefault(); $('form-mesaj').requestSubmit() }
+  })
+  $('form-mesaj').addEventListener('submit', async (ev) => {
+    ev.preventDefault()
+    const text = $('text').value.trim()
+    const id = chatProiect
+    if (!text || ocupat || !id) return
+    // Dacă omul trece pe alt proiect cât Claude încă scrie, răspunsul nu mai apare peste celălalt chat.
+    const aici = () => chatProiect === id
+    ocupat = true; $('text').value = ''; potTrimite()
+    document.querySelector('.bun-venit')?.remove()
+    bulaOm(text)
+    const lucreaza = document.createElement('div'); lucreaza.className = 'lucreaza'; lucreaza.innerHTML = '<i></i><span>Mă gândesc…</span>'
+    $('mesaje').append(lucreaza); jos()
+    let bula = null, acumulat = ''
+    const unelte = []
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { location.reload(); return }
+      const r = await fetch(`${URL_SUPABASE}/functions/v1/chat`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: CHEIE_PUBLICA, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proiect_id: id, mesaj: text }),
+      })
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}))
+        throw new Error(e.eroare || `Eroare ${r.status}. Încearcă din nou.`)
+      }
+      const dec = new TextDecoder(); let buf = ''
+      for await (const bucata of r.body) {
+        buf += dec.decode(bucata, { stream: true })
+        let i
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          const linie = buf.slice(0, i); buf = buf.slice(i + 2)
+          if (!linie.startsWith('data: ')) continue
+          const evt = JSON.parse(linie.slice(6))
+          if (evt.tip === 'eroare') throw new Error(evt.mesaj)
+          if (evt.tip === 'gata') { if (evt.limita) arataLimita({ limita_tokeni: evt.limita, tokeni_folositi: evt.folositi }); continue }
+          if (!aici()) continue
+          if (evt.tip === 'unealta') {
+            unelte.push(evt.nume)
+            lucreaza.querySelector('span').textContent = textUnealta(evt.nume)[0].toUpperCase() + textUnealta(evt.nume).slice(1) + '…'
+            // Text înainte de unealtă rămâne cum e; ce vine după începe o bulă nouă.
+            bula = null; acumulat = ''
+          } else if (evt.tip === 'text') {
+            if (!bula) {
+              if (unelte.length) cipuri(unelte.splice(0))
+              bula = bulaClaude()
+              $('mesaje').append(lucreaza)
+            }
+            acumulat += evt.text
+            bula.innerHTML = markdown(acumulat)
+            jos()
+          }
+        }
+      }
+      if (aici() && unelte.length) cipuri(unelte.splice(0))
+    } catch (e) {
+      if (aici()) {
+        const d = document.createElement('div'); d.className = 'eroare-chat'; d.setAttribute('role', 'alert')
+        d.textContent = (e instanceof TypeError ? 'Nu am internet acum. Mesajul nu a plecat.' : e.message) + ' '
+        const reia = document.createElement('button'); reia.type = 'button'; reia.className = 'link'; reia.textContent = 'Pune textul înapoi'
+        reia.addEventListener('click', () => { $('text').value = text; potTrimite(); $('text').focus(); d.remove() })
+        d.append(reia); $('mesaje').append(d)
+      }
+    } finally {
+      lucreaza.remove(); ocupat = false; potTrimite()
+      if (aici()) { jos(); incarcaDocumente() }
+    }
+  })
+
+  // ---------- Pornire ----------
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {})
   porneste()
 </script>
 </body>

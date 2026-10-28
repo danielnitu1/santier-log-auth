@@ -1,7 +1,7 @@
 {
   "name": "santier-log",
   "short_name": "santier-log",
-  "description": "Jurnalul de șantier și PV-urile, completate prin chat.",
+  "description": "Documentele proiectelor, completate prin chat.",
   "lang": "ro",
   "id": "./",
   "start_url": "./",
