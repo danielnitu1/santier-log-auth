@@ -7,20 +7,27 @@
 <title>santier-log</title>
 <style>
   /* Layout: bară sus cu firma; stânga proiectele; dreapta documentele proiectului ales. */
+  /* Tokenii Apps SDK UI (OpenAI), aceiași în pagina proiectului și în chat. */
   :root {
-    --bg: #f6f5f2; --panel: #ffffff; --ink: #1f1e1b; --muted: #6b6a66; --faint: #9a988f;
-    --line: #e4e2dc; --hover: #f0eee9; --accent: #c2410c; --accent-soft: #fdebe1;
-    --ok: #15803d; --ok-soft: #e3f3e8; --wip: #78766f; --wip-soft: #efede8;
-    --warn: #a16207; --warn-soft: #fbf1d9;
-    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --bg: #f9f9f9; --panel: #ffffff; --ink: #0d0d0d; --muted: #5d5d5d; --faint: #8f8f8f;
+    --line: rgb(13 13 13 / .10); --hover: #f3f3f3;
+    --primary: #181818; --primary-hover: #303030; --on-primary: #ffffff;
+    --accent: #181818; --accent-soft: #ededed; --link: #0169cc; --ring: #0169cc; --danger: #ba2623;
+    --ok: #008635; --ok-soft: #d9f4e4; --wip: #5d5d5d; --wip-soft: #ededed;
+    --warn: #923b0f; --warn-soft: #ffe7d9; --info: #004f99; --info-soft: #e5f3ff;
+    --discovery: #6b3ab4; --discovery-soft: #efe5fe;
+    --font: ui-sans-serif, -apple-system, system-ui, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
     --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #161614; --panel: #1f1f1c; --ink: #f1f0ec; --muted: #a3a29c; --faint: #75746e;
-      --line: #34332f; --hover: #282824; --accent: #f97316; --accent-soft: #3a2519;
-      --ok: #4ade80; --ok-soft: #1c2f22; --wip: #a3a29c; --wip-soft: #2a2a26;
-      --warn: #facc15; --warn-soft: #33290f;
+      --bg: #181818; --panel: #212121; --ink: #ffffff; --muted: #afafaf; --faint: #8f8f8f;
+      --line: rgb(255 255 255 / .12); --hover: #303030;
+      --primary: #f3f3f3; --primary-hover: #dcdcdc; --on-primary: #0d0d0d;
+      --accent: #f3f3f3; --accent-soft: #303030; --link: #339cff; --ring: #339cff; --danger: #fa423e;
+      --ok: #04b84c; --ok-soft: rgb(4 184 76 / .16); --wip: #afafaf; --wip-soft: #303030;
+      --warn: #fb6a22; --warn-soft: rgb(251 106 34 / .16); --info: #339cff; --info-soft: rgb(2 133 255 / .18);
+      --discovery: #be95fa; --discovery-soft: rgb(160 100 240 / .2);
       color-scheme: dark;
     }
   }
@@ -273,6 +280,68 @@
     .tabel td.titlu-card { font-weight: 600; }
     .descarca { min-height: 40px; padding: 6px 14px; font-size: 14px; }
   }
+
+  /* ---------- Aspectul Apps SDK UI (OpenAI): text aproape negru, suprafețe albe cu margini fine,
+     butoane rotunjite complet, badge-uri cu fond pal. Culorile vin din tokenii de mai sus. ---------- */
+  body { font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
+  a { color: var(--link); }
+  .brand { color: var(--ink); letter-spacing: -.01em; }
+  .eroare, .stare-incarcare.eroare { color: var(--danger); }
+  input, select.camp, textarea { border-radius: 12px; background: var(--panel); border-color: var(--line); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  label { font-weight: 500; font-size: 14px; }
+
+  /* Butoane: primar plin, secundar cu contur, toate pastile. */
+  .btn { border-radius: 9999px; min-height: 40px; background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: 500; }
+  .btn:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .descarca, .setari-btn, .nou-btn, .bara .dreapta button, .text-btn {
+    border-radius: 9999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 500;
+  }
+  .descarca:hover, .setari-btn:hover, .nou-btn:hover, .bara .dreapta button:hover { background: var(--hover); border-color: var(--line); color: var(--ink); }
+  .setari-btn, a.chat-btn { min-height: 36px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+  a.chat-btn { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+  a.chat-btn:hover { background: var(--primary-hover); color: var(--on-primary); filter: none; }
+  .icon { width: 18px; height: 18px; flex: none; }
+  .nou-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px 4px 8px; }
+  .nou-btn .icon { width: 16px; height: 16px; }
+  .btn-secundar { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 16px; border-radius: 9999px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 500; font-size: 14px; cursor: pointer; }
+  .btn-secundar:hover { background: var(--hover); }
+  .nota-curand { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* Badge-uri: colțuri de 4 px, fond pal, text în culoarea tonului. */
+  .badge, .eticheta, .stare {
+    display: inline-flex; align-items: center; height: 22px; padding: 0 6px; border-radius: 4px;
+    font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; text-decoration: none;
+  }
+  .eticheta.ok, .stare.emis { color: var(--ok); background: var(--ok-soft); }
+  .eticheta.wip, .stare.anulat { color: var(--wip); background: var(--wip-soft); font-weight: 500; }
+  .stare.ciorna { color: var(--warn); background: var(--warn-soft); }
+  .stare.semnat { color: var(--info); background: var(--info-soft); }
+  .badge { color: var(--wip); background: var(--wip-soft); }
+  .badge.tip-santier { color: var(--warn); background: var(--warn-soft); }
+  .badge.tip-hr { color: var(--discovery); background: var(--discovery-soft); }
+  .badge.tip-custom { color: var(--info); background: var(--info-soft); }
+
+  /* Suprafețe: carduri albe, margini fine, colțuri mari. */
+  .card, .lista, .progres, details.grup-wip, .doc-card, .bloc-tabel, .tip-card { border-radius: 16px; border-color: var(--line); }
+  dialog#setari, dialog#nou { border-radius: 20px; border-color: var(--line); box-shadow: 0 8px 32px rgb(0 0 0 / .12); }
+  .bara { border-bottom-color: var(--line); }
+  aside { border-right-color: var(--line); }
+  .proiect-btn { border-radius: 12px; }
+  .proiect-btn[aria-current="true"] { background: var(--hover); }
+  .proiect-btn .proiect-sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; min-width: 0; }
+  .proiect-btn .proiect-sub span:last-child { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .titlu-rand h1 { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; letter-spacing: -.01em; }
+  .vederi { border-radius: 9999px; border-color: var(--line); }
+  .vederi button { border-radius: 9999px; }
+  .vederi button[aria-pressed="true"] { background: var(--hover); color: var(--ink); }
+  input.cauta-docs { border-radius: 9999px; }
+  .tip-card { display: flex; align-items: flex-start; gap: 10px; }
+  .tip-card > div { display: grid; gap: 4px; justify-items: start; }
+  .tip-card:hover { border-color: var(--faint); background: var(--hover); }
+  .bara-progres i { background: var(--ok); }
+  .incarca { border-radius: 16px; border-color: var(--line); background: var(--hover); color: var(--ink); }
 </style>
 </head>
 <body>
@@ -309,7 +378,7 @@
     <div class="dreapta"><span class="email" id="utilizator"></span><button id="iesire" type="button">Ieși</button></div>
   </header>
   <div class="app">
-    <aside aria-label="Proiecte"><div class="aside-cap"><h2>Proiecte</h2><button class="nou-btn" id="proiect-nou" type="button">+ Proiect nou</button></div><div id="proiecte"></div></aside>
+    <aside aria-label="Proiecte"><div class="aside-cap"><h2>Proiecte</h2><button class="nou-btn" id="proiect-nou" type="button"><svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z" clip-rule="evenodd"/></svg>Proiect nou</button></div><div id="proiecte"></div></aside>
     <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă proiectele…</p></div></main>
   </div>
 </div>
@@ -328,6 +397,12 @@
     <button class="btn" type="submit">Salvează detaliile</button>
     <p class="stare-incarcare" id="stare-detalii" role="status"></p>
   </form>
+  <section class="setari-sectiune">
+    <h3>Date externe</h3>
+    <p class="ajutor">Leagă proiectul de surse din afară: Drive, Excel, programul de contabilitate.</p>
+    <button class="btn-secundar conectare-externa" type="button" data-icon="connect">Connect external data</button>
+    <p class="nota-curand" hidden>În curând. Spune-ne ce sursă ai vrea să conectezi.</p>
+  </section>
   <div class="setari-sectiune" id="setari-sigle"></div>
   <p class="ajutor setari-nota">Documentele deja emise rămân cum erau. Ca să preia modificările, le re-emiți din Claude.</p>
 </dialog>
@@ -349,6 +424,8 @@
     <label for="nou-nume">Denumirea proiectului <span class="camp-obligatoriu">*</span></label>
     <input id="nou-nume" required>
     <div id="nou-campuri"></div>
+    <button class="btn-secundar conectare-externa" type="button" data-icon="connect">Connect external data</button>
+    <p class="nota-curand" hidden>În curând. Spune-ne ce sursă ai vrea să conectezi.</p>
     <div class="butoane">
       <button class="link" type="button" id="nou-inapoi">← Alt tip</button>
       <button class="btn" type="submit">Creează proiectul</button>
@@ -445,7 +522,7 @@
 
   function deseneazaProiecte() {
     $('proiecte').innerHTML = proiecte.length
-      ? proiecte.map((l) => `<button class="proiect-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span>${esc([tipul(l)?.nume, ...(tipul(l)?.campuri ?? []).map((c) => valoare(l, c.cheie))].filter(Boolean).slice(0, 2).join(' · '))}</span></button>`).join('')
+      ? proiecte.map((l) => `<button class="proiect-btn" data-id="${l.id}"><strong>${esc(l.nume)}</strong><span class="proiect-sub">${badgeTip(l)}<span>${esc((tipul(l)?.campuri ?? []).map((c) => valoare(l, c.cheie)).find(Boolean) ?? '')}</span></span></button>`).join('')
       : '<p style="color:var(--muted);padding:0 6px">Niciun proiect încă. Apasă „+ Proiect nou”.</p>'
   }
   $('proiecte').addEventListener('click', (ev) => { const b = ev.target.closest('.proiect-btn'); if (b) alege(b.dataset.id) })
@@ -659,6 +736,32 @@
     }
   })
 
+  // ---------- Iconițe și badge-uri (Apps SDK UI) ----------
+  const svg = (d) => `<svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${d}</svg>`
+  const ICON = {
+    chat: svg('<path d="M12 4.5C7.5271 4.5 4 7.91095 4 12C4 13.6958 4.5996 15.263 5.62036 16.5254C5.80473 16.7534 5.87973 17.0509 5.82551 17.339C5.72928 17.8505 5.60336 18.3503 5.45668 18.8401C6.08722 18.743 6.69878 18.6098 7.2983 18.4395C7.54758 18.3687 7.81461 18.3975 8.04312 18.5197C9.20727 19.1423 10.5566 19.5 12 19.5C16.4729 19.5 20 16.0891 20 12C20 7.91095 16.4729 4.5 12 4.5ZM2 12C2 6.70021 6.53177 2.5 12 2.5C17.4682 2.5 22 6.70021 22 12C22 17.2998 17.4682 21.5 12 21.5C10.3694 21.5 8.82593 21.1286 7.46141 20.4675C6.36717 20.7507 5.2423 20.9253 4.06155 20.9981C3.72191 21.019 3.39493 20.8658 3.19366 20.5915C2.9924 20.3171 2.94448 19.9592 3.06647 19.6415C3.35663 18.8859 3.6004 18.1448 3.77047 17.399C2.65693 15.8695 2 14.0088 2 12Z"/>'),
+    setari: svg('<path fill-rule="evenodd" d="M11.568 3.5a1 1 0 0 0-.863.494l-.811 1.381A3.001 3.001 0 0 1 7.33 6.856l-1.596.013a1 1 0 0 0-.858.501l-.439.761a1 1 0 0 0-.004.992l.792 1.4a3 3 0 0 1 0 2.954l-.792 1.4a1 1 0 0 0 .004.992l.439.76a1 1 0 0 0 .858.502l1.596.013a3 3 0 0 1 2.564 1.48l.811 1.382a1 1 0 0 0 .863.494h.87a1 1 0 0 0 .862-.494l.812-1.381a3.001 3.001 0 0 1 2.563-1.481l1.596-.013a1 1 0 0 0 .86-.501l.438-.761a1 1 0 0 0 .004-.992l-.793-1.4a3 3 0 0 1 0-2.954l.793-1.4a1 1 0 0 0-.004-.992l-.439-.76a1 1 0 0 0-.858-.502l-1.597-.013a3 3 0 0 1-2.563-1.48L13.3 3.993a1 1 0 0 0-.862-.494h-.87ZM8.98 2.981A3.001 3.001 0 0 1 11.568 1.5h.87c1.064 0 2.049.564 2.588 1.481l.811 1.382a1 1 0 0 0 .855.494l1.596.013a3 3 0 0 1 2.575 1.502l.44.76a3 3 0 0 1 .011 2.975l-.792 1.4a1 1 0 0 0 0 .985l.792 1.401a3 3 0 0 1-.012 2.974l-.439.761a3.001 3.001 0 0 1-2.575 1.503l-1.597.012a1 1 0 0 0-.854.494l-.811 1.382a3.001 3.001 0 0 1-2.588 1.481h-.87a3.001 3.001 0 0 1-2.588-1.481l-.811-1.382a1 1 0 0 0-.855-.494l-1.596-.012a3.001 3.001 0 0 1-2.576-1.503l-.438-.76a3 3 0 0 1-.013-2.975l.793-1.4a1 1 0 0 0 0-.985l-.793-1.4a3 3 0 0 1 .013-2.975l.438-.761A3.001 3.001 0 0 1 5.718 4.87l1.596-.013a1 1 0 0 0 .855-.494l.81-1.382Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M12.003 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM8.502 12a3.5 3.5 0 1 1 7 .001 3.5 3.5 0 0 1-7-.001Z" clip-rule="evenodd"/>'),
+    connect: svg('<path fill-rule="evenodd" d="M6.346 10.897A3.5 3.5 0 1 1 8.856 6.5h6.289A3.502 3.502 0 0 1 22 7.5a3.5 3.5 0 0 1-4.346 3.397l-3.087 5.224a3.5 3.5 0 1 1-5.135 0l-3.086-5.224ZM4 7.5a1.5 1.5 0 1 1 2.418 1.187 1.006 1.006 0 0 0-.322.19A1.5 1.5 0 0 1 4 7.5Zm4.067 2.379 3.087 5.224a3.508 3.508 0 0 1 1.692 0l3.087-5.224a3.496 3.496 0 0 1-.788-1.379h-6.29c-.155.52-.428.99-.788 1.379Zm9.997-.943a.998.998 0 0 0-.61-.362 1.5 1.5 0 1 1 .61.361ZM12 17a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" clip-rule="evenodd"/>'),
+    upload: svg('<path fill-rule="evenodd" d="M18.032 5.024C17.75 5 17.377 5 16.8 5h-5.3c-.2 1-.401 1.911-.61 2.854-.131.596-.247 1.119-.523 1.56a2.998 2.998 0 0 1-.953.954c-.441.275-.964.39-1.56.522l-.125.028-2.512.558A1.003 1.003 0 0 1 5 11.5v5.3c0 .577 0 .949.024 1.232.022.272.06.372.085.422a1 1 0 0 0 .437.437c.05.025.15.063.422.085C6.25 19 6.623 19 7.2 19H10a1 1 0 1 1 0 2H7.161c-.527 0-.981 0-1.356-.03-.395-.033-.789-.104-1.167-.297a3 3 0 0 1-1.311-1.311c-.193-.378-.264-.772-.296-1.167A17.9 17.9 0 0 1 3 16.838V11c0-2.075 1.028-4.067 2.48-5.52C6.933 4.028 8.925 3 11 3h5.838c.528 0 .982 0 1.357.03.395.033.789.104 1.167.297a3 3 0 0 1 1.311 1.311c.193.378.264.772.296 1.167.031.375.031.83.031 1.356V10a1 1 0 1 1-2 0V7.2c0-.577 0-.949-.024-1.232-.022-.272-.06-.373-.085-.422a1 1 0 0 0-.437-.437c-.05-.025-.15-.063-.422-.085ZM5.28 9.414l2.015-.448c.794-.177.948-.225 1.059-.294a1 1 0 0 0 .318-.318c.069-.11.117-.265.294-1.059l.447-2.015c-.903.313-1.778.874-2.518 1.615-.741.74-1.302 1.615-1.615 2.518ZM17 15a1 1 0 1 1 2 0v2h2a1 1 0 1 1 0 2h-2v2a1 1 0 1 1-2 0v-2h-2a1 1 0 1 1 0-2h2v-2Z" clip-rule="evenodd"/>'),
+  }
+  // Tipul proiectului, mereu ca badge (culoarea după tip).
+  const badgeTip = (l) => `<span class="badge tip-${esc(l.tip_proiect)}">${esc(tipul(l)?.nume ?? l.tip_proiect)}</span>`
+  // Proiectele fără catalog (tipul Personalizat): aici își vor încărca propriile modele de documente.
+  const incarcaProprii = (l) => `<section class="doc-card">
+      <h2>Documentele tale</h2>
+      <p>Proiectele de tip ${badgeTip(l)} nu au documente predefinite. Încarci modelele tale (Word), iar Claude le completează din chat.</p>
+      <button class="btn-secundar incarca-proprii" type="button">${ICON.upload}Upload your own documents</button>
+      <p class="nota-curand" hidden>În curând. Până atunci, trimite-ne modelele și le adăugăm noi.</p>
+    </section>`
+  // Butoanele încă nefuncționale („Connect external data”, „Upload your own documents”): arată că urmează.
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.conectare-externa, .incarca-proprii')
+    if (!b) return
+    const nota = b.nextElementSibling
+    if (nota?.classList.contains('nota-curand')) nota.hidden = false
+  })
+  for (const b of document.querySelectorAll('[data-icon="connect"]')) b.insertAdjacentHTML('afterbegin', ICON.connect)
+
   // ---------- Lista de documente: trei vederi, căutare, grupuri pliabile ----------
   const pastrat = {
     get: (k) => { try { return localStorage.getItem(k) } catch { return null } },
@@ -686,7 +789,7 @@
   // Pe categorii, din catalogul tipului de proiect. O categorie fără nimic gata stă strânsă.
   function vederePeTip({ l, zile, docs }) {
     const lista = catalogTip(l.tip_proiect)
-    if (!lista.length) return `<p class="gol">Tipul ${esc(tipul(l)?.nume ?? l.tip_proiect)} nu are încă documente în catalog.</p>`
+    if (!lista.length) return incarcaProprii(l)
     const categorii = []
     for (const c of lista) {
       let g = categorii.at(-1)
@@ -792,9 +895,8 @@
 
     $('pagina').innerHTML = `
       <div class="antet">
-        <div class="titlu-rand"><h1>${esc(l.nume)}</h1><div class="actiuni-proiect"><a class="descarca setari-btn chat-btn" href="../chat/?proiect=${esc(l.id)}" target="_blank" rel="noopener">Chat</a><button class="descarca setari-btn" type="button" id="deschide-setari">⚙ Setări</button></div></div>
+        <div class="titlu-rand"><h1>${esc(l.nume)} ${badgeTip(l)}</h1><div class="actiuni-proiect"><a class="descarca setari-btn chat-btn" href="../chat/?proiect=${esc(l.id)}" target="_blank" rel="noopener">${ICON.chat}Chat</a><button class="descarca setari-btn" type="button" id="deschide-setari">${ICON.setari}Setări</button></div></div>
         <dl>
-          <div><dt>Tip</dt><dd>${esc(tipul(l)?.nume ?? l.tip_proiect)}</dd></div>
           ${(tipul(l)?.campuri ?? []).filter((c) => c.in_antet || valoare(l, c.cheie)).map((c) => `<div><dt>${esc(c.eticheta)}</dt><dd>${esc(valoare(l, c.cheie) || '—')}</dd></div>`).join('')}
         </dl>
         ${persoane.length ? `<div class="persoane">${persoane.map((p) => `<span>${esc(ROLURI[p.rol] ?? p.rol)}: ${esc(p.nume)}</span>`).join('')}</div>` : ''}
@@ -802,8 +904,8 @@
 
       <div class="progres">
         <div class="rand"><strong>Documente</strong><span>${nrDocs} ${nrDocs === 1 ? 'document generat' : 'documente generate'}</span></div>
-        <div class="bara-progres" title="${activeTipuri} din ${totalTipuri} tipuri de documente disponibile"><i style="width:${Math.max(3, Math.round(activeTipuri / totalTipuri * 100))}%"></i></div>
-        <div class="legenda"><span>${activeTipuri} din ${totalTipuri} tipuri de documente disponibile azi</span><span>${eticheta(true)} se face din Claude</span><span>${eticheta(false)} urmează</span></div>
+        ${catalogTip(l.tip_proiect).length ? `<div class="bara-progres" title="${activeTipuri} din ${totalTipuri} tipuri de documente disponibile"><i style="width:${Math.max(3, Math.round(activeTipuri / totalTipuri * 100))}%"></i></div>
+        <div class="legenda"><span>${activeTipuri} din ${totalTipuri} tipuri de documente disponibile azi</span><span>${eticheta(true)} se face din Claude</span><span>${eticheta(false)} urmează</span></div>` : ''}
       </div>
 
       <div class="unelte-docs">
@@ -1024,7 +1126,7 @@
   let tipNou = null
   function deschideNou() {
     tipNou = null
-    $('nou-tipuri').innerHTML = tipuri.map((t) => `<button class="tip-card" type="button" data-tip="${esc(t.cod)}"><strong>${esc(t.nume)}</strong>${t.descriere ? `<span>${esc(t.descriere)}</span>` : ''}</button>`).join('')
+    $('nou-tipuri').innerHTML = tipuri.map((t) => `<button class="tip-card" type="button" data-tip="${esc(t.cod)}"><div>${badgeTip({ tip_proiect: t.cod })}${t.descriere ? `<span>${esc(t.descriere)}</span>` : ''}</div></button>`).join('')
     $('nou-pas-tip').hidden = false
     $('nou-form').hidden = true
     $('nou').showModal()
@@ -1032,7 +1134,7 @@
   function alegeTipNou(cod) {
     tipNou = tipuri.find((t) => t.cod === cod)
     if (!tipNou) return
-    $('nou-tip-ales').textContent = `Proiect de tip ${tipNou.nume}`
+    $('nou-tip-ales').innerHTML = `Proiect nou ${badgeTip({ tip_proiect: tipNou.cod })}`
     $('nou-firma').innerHTML = firmeEditabile.length > 1
       ? `<label for="nou-firma-sel">Firma</label><select class="camp" id="nou-firma-sel">${firmeEditabile.map((f) => `<option value="${esc(f.id)}">${esc(f.nume)}</option>`).join('')}</select>`
       : ''

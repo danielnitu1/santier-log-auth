@@ -14,27 +14,32 @@
 <meta name="apple-mobile-web-app-title" content="santier-log">
 <style>
   /* Layout: un ecran pe rând (login → proiecte → chat), ca o aplicație de telefon.
-     Culorile și fontul sunt cele din pagina Cartea Tehnică, ca produsul să arate la fel. */
+     Aspectul Apps SDK UI (OpenAI), același ca în pagina proiectului. */
+  /* Tokenii Apps SDK UI (OpenAI), aceiași în pagina proiectului și în chat. */
   :root {
-    --bg: #f6f5f2; --panel: #ffffff; --ink: #1f1e1b; --muted: #6b6a66; --faint: #9a988f;
-    --line: #e4e2dc; --hover: #f0eee9; --accent: #c2410c; --accent-soft: #fdebe1;
-    --bula-om: #c2410c; --bula-om-ink: #ffffff;
-    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --bg: #f9f9f9; --panel: #ffffff; --ink: #0d0d0d; --muted: #5d5d5d; --faint: #8f8f8f;
+    --line: rgb(13 13 13 / .10); --hover: #f3f3f3;
+    --primary: #181818; --primary-hover: #303030; --on-primary: #ffffff;
+    --accent: #181818; --accent-soft: #ededed; --link: #0169cc; --ring: #0169cc; --danger: #ba2623;
+    --ok: #008635; --ok-soft: #d9f4e4; --wip: #5d5d5d; --wip-soft: #ededed;
+    --warn: #923b0f; --warn-soft: #ffe7d9; --info: #004f99; --info-soft: #e5f3ff;
+    --discovery: #6b3ab4; --discovery-soft: #efe5fe;
+    --font: ui-sans-serif, -apple-system, system-ui, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
     --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    --bula-om: #f3f3f3; --bula-om-ink: #0d0d0d;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #161614; --panel: #1f1f1c; --ink: #f1f0ec; --muted: #a3a29c; --faint: #75746e;
-      --line: #34332f; --hover: #282824; --accent: #f97316; --accent-soft: #3a2519;
-      --bula-om: #9a3412; --bula-om-ink: #fff7ed;
+      --bg: #181818; --panel: #212121; --ink: #ffffff; --muted: #afafaf; --faint: #8f8f8f;
+      --line: rgb(255 255 255 / .12); --hover: #303030;
+      --primary: #f3f3f3; --primary-hover: #dcdcdc; --on-primary: #0d0d0d;
+      --accent: #f3f3f3; --accent-soft: #303030; --link: #339cff; --ring: #339cff; --danger: #fa423e;
+      --ok: #04b84c; --ok-soft: rgb(4 184 76 / .16); --wip: #afafaf; --wip-soft: #303030;
+      --warn: #fb6a22; --warn-soft: rgb(251 106 34 / .16); --info: #339cff; --info-soft: rgb(2 133 255 / .18);
+      --discovery: #be95fa; --discovery-soft: rgb(160 100 240 / .2);
+      --bula-om: #303030; --bula-om-ink: #ffffff;
       color-scheme: dark;
     }
-  }
-  :root[data-theme="dark"] {
-    --bg: #161614; --panel: #1f1f1c; --ink: #f1f0ec; --muted: #a3a29c; --faint: #75746e;
-    --line: #34332f; --hover: #282824; --accent: #f97316; --accent-soft: #3a2519;
-    --bula-om: #9a3412; --bula-om-ink: #fff7ed;
-    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -147,6 +152,33 @@
   .categorie[open] summary::after { transform: rotate(-135deg); margin-bottom: -4px; }
   .categorie .doc { padding-left: 14px; }
   @media (prefers-reduced-motion: reduce) { .categorie summary::after { transition: none; } }
+
+  /* ---------- Aspectul Apps SDK UI ---------- */
+  a { color: var(--link); }
+  .brand { color: var(--ink); }
+  .eroare { color: var(--danger); }
+  input, textarea { border-color: var(--line); }
+  :focus-visible { outline-color: var(--ring); }
+  .btn { border-radius: 9999px; background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: 500; }
+  .trimite { background: var(--primary); color: var(--on-primary); }
+  .mesaj.om { border-radius: 18px; padding: 10px 14px; }
+  .lucrare, .proiect, .exemplu, .card, #documente { border-color: var(--line); }
+  .proiect { border-radius: 16px; }
+  .proiect .proiect-sub { display: flex; align-items: center; gap: 6px; margin-top: 4px; min-width: 0; }
+  .proiect .proiect-sub span:last-child { color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .exemplu { border-radius: 9999px; padding: 8px 14px; }
+  .unealta { border-color: var(--line); }
+  .lucreaza i { background: var(--ink); }
+  .text-btn { border-radius: 9999px; border-color: var(--line); color: var(--ink); }
+  .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 6px; border-radius: 4px; font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; color: var(--wip); background: var(--wip-soft); }
+  .badge.tip-santier { color: var(--warn); background: var(--warn-soft); }
+  .badge.tip-hr { color: var(--discovery); background: var(--discovery-soft); }
+  .badge.tip-custom { color: var(--info); background: var(--info-soft); }
+  .bara .badge { flex: none; }
+  .doc .curand { border-radius: 4px; border: 0; background: var(--wip-soft); color: var(--wip); font-style: normal; font-weight: 500; }
+  .btn-secundar { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 16px; border-radius: 9999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 500; font-size: 14px; cursor: pointer; }
+  .btn-secundar svg { width: 18px; height: 18px; }
+  .nota-curand { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -197,6 +229,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <h1 id="titlu-chat">—</h1>
+    <span id="tip-chat"></span>
   </header>
   <div class="fir gutter" id="fir" aria-live="polite">
     <div class="fir-in" id="mesaje"></div>
@@ -260,6 +293,10 @@
       exemple: ['Ce documente HR pot face aici?', 'Ce date are proiectul ăsta?', 'Adaugă punctul de lucru: Arad, str. Traian 12.'],
       scrie: 'Scrie ce ai nevoie…', intro: 'Te ajut cu documentele HR',
     },
+    custom: {
+      exemple: ['Ce date are proiectul ăsta?', 'Pune clientul: SC Exemplu SRL.', 'Cum îmi adaug modelele mele de documente?'],
+      scrie: 'Scrie ce ai nevoie…', intro: 'Te ajut cu documentele tale',
+    },
   }
   const peTip = () => PE_TIP[curenta?.tip_proiect] ?? PE_TIP.santier
 
@@ -307,7 +344,7 @@
     proiecte = lc ?? []
     const sageata = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
     $('proiecte').innerHTML = error ? `<p class="eroare">${esc(error.message)}</p>`
-      : proiecte.length ? proiecte.map((l) => `<button class="proiect" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong>${(() => { const sub = [l.tipuri_proiect?.nume, ...Object.values(l.date ?? {})].filter(Boolean).slice(0, 2).join(' · '); return sub ? `<span>${esc(sub)}</span>` : '' })()}</div>${sageata}</button>`).join('')
+      : proiecte.length ? proiecte.map((l) => `<button class="proiect" type="button" data-id="${esc(l.id)}"><div><strong>${esc(l.nume)}</strong><span class="proiect-sub">${badgeTip(l)}<span>${esc(Object.values(l.date ?? {}).find(Boolean) ?? '')}</span></span></div>${sageata}</button>`).join('')
       : '<div class="gol">Nu ai încă proiecte. Cere adminului firmei să te adauge.</div>'
     arataLimita(limita)
     // Deschis din pagina proiectului (butonul „Chat”): ?proiect=<id> duce direct în chatul lui.
@@ -335,6 +372,7 @@
     memorie.set('santier-log:proiect', id)
     if (location.hash !== '#chat') history.pushState(null, '', '#chat')
     $('titlu-chat').textContent = curenta.nume
+    $('tip-chat').innerHTML = badgeTip(curenta)
     $('text').placeholder = peTip().scrie
     $('mesaje').innerHTML = '<div class="lucreaza"><i></i>Se încarcă istoricul…</div>'
     arata('ecran-chat')
@@ -409,6 +447,15 @@
     return out.join('')
   }
 
+  // Tipul proiectului, mereu ca badge (culoarea după tip).
+  const badgeTip = (l) => `<span class="badge tip-${esc(l.tip_proiect)}">${esc(l.tipuri_proiect?.nume ?? l.tip_proiect)}</span>`
+  const ICON_UPLOAD = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18.032 5.024C17.75 5 17.377 5 16.8 5h-5.3c-.2 1-.401 1.911-.61 2.854-.131.596-.247 1.119-.523 1.56a2.998 2.998 0 0 1-.953.954c-.441.275-.964.39-1.56.522l-.125.028-2.512.558A1.003 1.003 0 0 1 5 11.5v5.3c0 .577 0 .949.024 1.232.022.272.06.372.085.422a1 1 0 0 0 .437.437c.05.025.15.063.422.085C6.25 19 6.623 19 7.2 19H10a1 1 0 1 1 0 2H7.161c-.527 0-.981 0-1.356-.03-.395-.033-.789-.104-1.167-.297a3 3 0 0 1-1.311-1.311c-.193-.378-.264-.772-.296-1.167A17.9 17.9 0 0 1 3 16.838V11c0-2.075 1.028-4.067 2.48-5.52C6.933 4.028 8.925 3 11 3h5.838c.528 0 .982 0 1.357.03.395.033.789.104 1.167.297a3 3 0 0 1 1.311 1.311c.193.378.264.772.296 1.167.031.375.031.83.031 1.356V10a1 1 0 1 1-2 0V7.2c0-.577 0-.949-.024-1.232-.022-.272-.06-.373-.085-.422a1 1 0 0 0-.437-.437c-.05-.025-.15-.063-.422-.085ZM5.28 9.414l2.015-.448c.794-.177.948-.225 1.059-.294a1 1 0 0 0 .318-.318c.069-.11.117-.265.294-1.059l.447-2.015c-.903.313-1.778.874-2.518 1.615-.741.74-1.302 1.615-1.615 2.518ZM17 15a1 1 0 1 1 2 0v2h2a1 1 0 1 1 0 2h-2v2a1 1 0 1 1-2 0v-2h-2a1 1 0 1 1 0-2h2v-2Z" clip-rule="evenodd"/></svg>'
+  // Buton încă nefuncțional: arată că urmează.
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.incarca-proprii')
+    if (b) b.closest('p').nextElementSibling.hidden = false
+  })
+
   // ---------- Documente: catalogul de pe server, grupat pe categorii ----------
   // Ce nu e gata apare dezactivat, cu „în curând”, ca testerul să vadă ce urmează.
   let catalog = null
@@ -445,6 +492,12 @@
   }
 
   function deseneaza(cautare) {
+    if (!catalog.length) {
+      $('documente-lista').innerHTML = `<p class="gol">Proiectele de tip ${badgeTip(curenta)} nu au documente predefinite. Încarci modelele tale, iar eu le completez din chat.</p>
+        <p><button class="btn-secundar incarca-proprii" type="button">${ICON_UPLOAD}Upload your own documents</button></p>
+        <p class="nota-curand" hidden>În curând. Până atunci, trimite-ne modelele și le adăugăm noi.</p>`
+      return
+    }
     const q = fara(cautare.trim())
     if (q) {
       const gasite = catalog.filter((c) => fara(c.nume + ' ' + c.categorie).includes(q)).sort((a, b) => b.activ - a.activ)
