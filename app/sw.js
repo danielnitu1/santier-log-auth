@@ -1,6 +1,6 @@
 // Service worker al aplicației (proiecte, documente, chat): păstrează interfața ca să se deschidă și fără semnal.
 // Mesajele și datele merg mereu la server; aici se pun doar fișierele paginii.
-const VERSIUNE = 'santier-log-app-2'
+const VERSIUNE = 'santier-log-app-3'
 const FISIERE = ['./', 'index.html', 'manifest.webmanifest', 'iconite/icon-192.png', 'iconite/icon-512.png', 'iconite/apple-touch-icon.png']
 
 self.addEventListener('install', (ev) => {
@@ -15,13 +15,13 @@ self.addEventListener('activate', (ev) => {
   )
 })
 
-// Doar fișierele noastre (aceeași adresă, GET): întâi rețeaua, ca să vină mereu versiunea nouă;
+// Doar fișierele noastre (aceeași adresă, GET): întâi rețeaua, verificată la server (no-cache, nu cache-ul de 10 minute al GitHub Pages);
 // fără rețea, din cache. Supabase și CDN-ul nu trec pe aici.
 self.addEventListener('fetch', (ev) => {
   const req = ev.request
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return
   ev.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((r) => {
         if (r.ok) { const copie = r.clone(); caches.open(VERSIUNE).then((c) => c.put(req, copie)) }
         return r
