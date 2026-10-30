@@ -540,7 +540,7 @@
     <main><div class="continut" id="pagina"><p style="color:var(--muted)">Se încarcă proiectele…</p></div></main>
     <section id="chat" aria-label="Chat">
       <div class="trage-chat" id="trage-chat" role="separator" aria-orientation="vertical" aria-label="Lățimea chatului" aria-valuemin="20" aria-valuemax="60" tabindex="0" title="Trage ca să schimbi lățimea. Dublu clic: înapoi la 30%."></div>
-      <header class="chat-cap"><strong>Chat</strong><span>Scrie ce s-a făcut. Claude completează documentele.</span></header>
+      <header class="chat-cap"><strong>Chat</strong></header>
       <div class="fir" id="fir" aria-live="polite"><div class="fir-in" id="mesaje"></div></div>
       <div class="scrie">
         <form id="form-mesaj">
@@ -1131,8 +1131,6 @@
   function deseneazaProiectul(l, zile, docs) {
     const persoane = [...(l.persoane_proiect ?? [])].sort((a, b) => a.ordine - b.ordine)
 
-    const totalTipuri = Math.max(1, catalogTip(l.tip_proiect).length)
-    const activeTipuri = catalogTip(l.tip_proiect).filter((c) => c.activ).length
     const nrDocs = zile.length + docs.length
     if (curent?.l.id !== l.id) cautare = ''
     curent = { l, zile, docs }
@@ -1148,8 +1146,6 @@
 
       <div class="progres">
         <div class="rand"><strong>Documente</strong><span>${nrDocs} ${nrDocs === 1 ? 'document generat' : 'documente generate'}</span></div>
-        ${catalogTip(l.tip_proiect).length ? `<div class="bara-progres" title="${activeTipuri} din ${totalTipuri} tipuri de documente disponibile"><i style="width:${Math.max(3, Math.round(activeTipuri / totalTipuri * 100))}%"></i></div>
-        <div class="legenda"><span>${activeTipuri} din ${totalTipuri} tipuri de documente disponibile azi</span><span>${eticheta(true)} se face din Claude</span><span>${eticheta(false)} urmează</span></div>` : ''}
       </div>
 
       <div class="unelte-docs">
